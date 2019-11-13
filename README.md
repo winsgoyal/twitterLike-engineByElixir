@@ -1,2 +1,2 @@
 # Twitter-like Engine in Elixir
-Implementation of Twitter-like Engine by Elixir and its relevant modules &amp; frameworks.
+Implementation of Twitter-like Engine in Elixir and using its relevant modules &amp; frameworks.
