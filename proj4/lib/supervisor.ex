@@ -8,20 +8,16 @@ defmodule MySupervisor do
     Supervisor.start_link(__MODULE__,init_arg)
   end
 
-  # arg1: numNodes, arg2: numRequest
+  # arg1: numUsers, arg2: numRequest
   def init([arg1, _arg2]) do
     
-    children = Enum.map(1..arg1, fn(n) ->
-
-     
-        worker(Client, [ Integer.to_string(n)  ], [id:  Integer.to_string(n) , restart: :transient, shutdown: :infinity])
+    children = Enum.map( 1..arg1, fn(n) ->
       
+      worker( Client, [ Integer.to_string(n) ], [ id:  Integer.to_string(n) , restart: :transient, shutdown: :infinity ] )
 
-    end)
+    end )
 
-    children =  [worker(TwitterServer , [] , [id: TwitterServer, restart: :transient, shutdown: :infinity])] ++ children
-
-    #children = children ++ [worker(NodeInfo , [] , [id: NodeInfo, restart: :transient, shutdown: :infinity])]
+    children = [worker(TwitterServer, [] , [id: TwitterServer, restart: :transient, shutdown: :infinity ])] ++ children
 
     supervise(children, strategy: :one_for_one)
   
