@@ -21,6 +21,14 @@ defmodule Client  do
     GenServer.call(pid, :set, :infinity)
   end
   
+  def register(pid, user, password) do
+    GenServer.call(pid, {:register,user, password})
+  end
+
+  def login(pid, user, password) do
+    GenServer.call(pid, {:login,user, password})
+  end
+
   #User will tweet, this function then connect to server
   def tweet(pid, user) do
     GenServer.cast(pid, {:tweet,user})
@@ -133,9 +141,20 @@ defmodule Client  do
    # {:noreply,%{state | objectids: objectid_list ++ objectid}  }
     
   #end
-  
-  
+
   def handle_call(:get, _from, state) do
+    {:reply,state, state , 100000}
+  end
+  
+  def handle_call({:register,user, password}, _from, state) do
+
+    TwitterServer.register( user , password ) ;
+    {:reply,state, state , 100000}
+  end
+
+  def handle_call({:login,user, password}, _from, state) do
+
+    TwitterServer.login( user , password ) ;
     {:reply,state, state , 100000}
   end
   

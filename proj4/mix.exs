@@ -6,8 +6,11 @@ defmodule TwitterP1.MixProject do
       app: :twitter_p1,
       version: "0.1.0",
       elixir: "~> 1.9",
-      start_permanent: Mix.env() == :prod,
-      deps: deps()
+      build_embedded: Mix.env == :prod,
+      start_permanent: Mix.env == :prod,
+      deps: deps(),
+      #build_embedded: Mix.env == :prod,
+      escript: escript()
     ]
   end
 
@@ -18,6 +21,10 @@ defmodule TwitterP1.MixProject do
     ]
   end
 
+  def escript do
+    [main_module: Proj3.Tapestry]
+  end
+  
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [

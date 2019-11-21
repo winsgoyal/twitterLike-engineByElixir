@@ -9,17 +9,17 @@ defmodule MySupervisor do
   end
 
   # arg1: numNodes, arg2: numRequest
-  def init([arg1, arg2]) do
+  def init([arg1, _arg2]) do
     
     children = Enum.map(1..arg1, fn(n) ->
 
      
-        worker(Client, [Generic.generate_id( Integer.to_string(n) ) ], [id: Generic.generate_id( Integer.to_string(n) ), restart: :transient, shutdown: :infinity])
+        worker(Client, [ Integer.to_string(n)  ], [id:  Integer.to_string(n) , restart: :transient, shutdown: :infinity])
       
 
     end)
 
-    children =  [worker(Server , [arg1, arg2] , [id: Server, restart: :transient, shutdown: :infinity])] ++ children
+    children =  [worker(TwitterServer , [] , [id: TwitterServer, restart: :transient, shutdown: :infinity])] ++ children
 
     #children = children ++ [worker(NodeInfo , [] , [id: NodeInfo, restart: :transient, shutdown: :infinity])]
 

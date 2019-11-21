@@ -1,10 +1,15 @@
-defmodule Server do 
+defmodule TwitterServer do 
     use GenServer
 
-    def start_link(numNodes,numRequests) do
-        GenServer.start_link(__MODULE__, {numNodes*numRequests,0},name: __MODULE__ )
+    def start_link() do
+        GenServer.start_link(__MODULE__, {0},name: __MODULE__ )
     end
     def init(state) do
+       :ets.new(:user, [:set, :protected, :named_table])
+       :ets.new(:tweets, [:set, :protected , :named_table])
+       #:ets.new(:user, [:set, :protected , :named_table])
+       #:ets.new(:user, [:set, :protected , :named_table])
+       #:ets.new(:user, [:set, :protected , :named_table])
        {:ok, state}
     end
 
@@ -12,8 +17,13 @@ defmodule Server do
         GenServer.call(__MODULE__, :get, :infinity)
       end
 
-    def register(user) do
-      GenServer.cast(__MODULE__, {:register,user})
+    def register(user, password) do
+      GenServer.call(__MODULE__, {:register,user, password})
+    end
+
+    
+    def login(user , password) do
+      GenServer.call(__MODULE__, {:login,user , password})
     end
 
     def delete(user) do
@@ -44,17 +54,8 @@ defmodule Server do
     def subscribe( user, subscribe_to_user ) do
       GenServer.cast(__MODULE__, {:subscribe,user, subscribe_to_user })
     end
-    def initiate_requests(numNodes, numRequests) do
-        
-        Enum.each(1..numNodes, fn n ->
-            nodeid = Generic.generate_id(Integer.to_string(n))
-            pid = Process.whereis(String.to_existing_atom(nodeid ))
-
-            Tapestry.send_to_nodes( pid , numNodes , numRequests )
-          end
-            )
-        
-    end
+  
+    
 
     #Tapsetry nodes will use this function to send done requests
     #to Server, and will send the  counts of hops for routing to a node
@@ -64,9 +65,46 @@ defmodule Server do
 
   
    
-    def handle_cast({:done,hop_count},{remaining_requests, maxhop_count}) do
+    def handle_cast({:done,_hop_count},state) do
         # Reduce the request count on receivind done message and also updae the max_hop if necessry
-       {:noreply, {remaining_requests - 1 , find_max(maxhop_count, hop_count)} }
+       #{:noreply, {remaining_requests - 1 , find_max(maxhop_count, hop_count)} }
+       {:noreply, state }
+    end
+
+    def handle_call({:register, user, password}, _from, state) do
+      # Reduce the request count on receivind done message and also updae the max_hop if necessry
+      
+      #existing_usres_map = :ets.lookup(:user, "users")
+     # existing_usres_map = %{ existing_usres_map | user => [password, 0] }
+      #existing_usres_map = Map.put(existing_usres_map, "a", 100)
+      :ets.insert_new(:user, {user, password, 0})
+      IO.inspect "Username #{user} Created"
+      {:reply, state,state}
+    end
+
+    def handle_call({:login, user, password}, _from, state) do
+      # Reduce the request count on receivind done message and also updae the max_hop if necessry
+      
+      #existing_usres_map = :ets.lookup(:user_lookup, "users")
+      #user_details = Map.get( existing_usres_map , user) 
+      user_details = :ets.lookup(:user, user)
+      if length( user_details) >  0 do
+        #user exists and password matches
+        #update the map to have loginflag as 1
+        #existing_usres_map = %{ existing_usres_map | user => [password,1] }
+        [ {user,stored_password, _} ]  = user_details
+        if stored_password == password do
+          :ets.insert_new(:user, {"users", {user, password, 1}})
+           IO.inspect "User #{user} Login Successfull"
+        else
+          IO.puts "User name/ password is not correct"
+        end
+        
+      else
+        IO.puts "User name/ password is not correct"
+      end
+      
+      {:reply, state, state}
     end
 
 
@@ -76,13 +114,6 @@ defmodule Server do
         {:reply, state,state}
     end
 
-   def find_max(n1,n2) do
-       if n1 > n2 do
-           n1
-       else
-           n2
-       end
-   end
 
 
 
