@@ -6,8 +6,23 @@ defmodule TwitterServer do
     end
 
     def init(state) do
+      
+      ## Table: User
+      ## {user, password, logged_in_status}
       :ets.new(:user, [:set, :protected, :named_table])
-      :ets.new(:tweet, [:set, :protected , :named_table])
+      
+      ## Table: Tweet
+      ## {tweet, user, mention_list, hashstag_list, liked_by_users_list}
+      :ets.new(:tweet, [:set, :protected, :named_table])
+
+      ## Table: Subscribe
+      ## {user, liked_tweets_list, subscribed_to_user_list, subscribed_by_user_list, subscribed_to_hashtag_list}
+      :ets.new(:subscribe, [:set, :protected, :named_table])
+
+      ## Table: Hashtag
+      ## {hashtag, subscribed_by_user_list}
+      :ets.new(:hashtag, [:set, :protected, :named_table])
+
       {:ok, state}
     end
 
@@ -61,7 +76,7 @@ defmodule TwitterServer do
         IO.inspect "Username #{user} already exists"
       else
         :ets.insert_new(:user, {user, password, 0})
-         IO.inspect "Username #{user} Created"
+        IO.inspect "Username #{user} Created"
       end 
 
       {:reply, state, state}
