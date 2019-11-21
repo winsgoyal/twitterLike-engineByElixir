@@ -77,8 +77,15 @@ defmodule TwitterServer do
       #existing_usres_map = :ets.lookup(:user, "users")
      # existing_usres_map = %{ existing_usres_map | user => [password, 0] }
       #existing_usres_map = Map.put(existing_usres_map, "a", 100)
-      :ets.insert_new(:user, {user, password, 0})
-      IO.inspect "Username #{user} Created"
+      user_details = :ets.lookup(:user, user)
+      if length(user_details) > 0 do
+        IO.inspect "Username #{user} already exists"
+      else
+        :ets.insert_new(:user, {user, password, 0})
+         IO.inspect "Username #{user} Created"
+      end 
+      
+     
       {:reply, state,state}
     end
 
