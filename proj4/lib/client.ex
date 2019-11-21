@@ -22,16 +22,20 @@ defmodule Client  do
   end
   
   def register(pid, user, password) do
-    GenServer.call(pid, {:register,user, password})
+    GenServer.call(pid, {:register, user, password})
   end
 
   def login(pid, user, password) do
-    GenServer.call(pid, {:login,user, password})
+    GenServer.call(pid, {:login, user, password})
   end
 
   #User will tweet, this function then connect to server
   def tweet(pid, user) do
-    GenServer.cast(pid, {:tweet,user})
+    GenServer.cast(pid, {:tweet, user})
+  end
+
+  def subscribe_to(pid, user, subscribe_to_user) do
+    GenServer.cast(pid, {:subscribe_to, user, subscribe_to_user})
   end
 
   # to receive tweet from servers
@@ -72,7 +76,7 @@ defmodule Client  do
     {:reply, state, state, 100000}
   end
   
-  def handle_call({:register,user, password}, _from, state) do
+  def handle_call({:register, user, password}, _from, state) do
     TwitterServer.register( user , password ) ;
     {:reply,state, state , 100000}
   end
@@ -80,6 +84,11 @@ defmodule Client  do
   def handle_call({:login, user, password}, _from, state) do
     TwitterServer.login( user, password ) ;
     {:reply, state, state, 100000}
+  end
+
+  def handle_cast ({:subscribe_to, user, subscribe_to_user}, _from, state) do
+    TwitterServer.subscribe_user(user, subscribe_to_user})
+    {:noreply, state }
   end
   
   def handle_call(:set, _from, state) do
