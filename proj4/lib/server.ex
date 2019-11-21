@@ -55,15 +55,15 @@ defmodule TwitterServer do
       GenServer.cast(__MODULE__, {:tweet,user, tweet_text })
     end
 
-    #When user retweet some tweet, then that tweet will appear in
-    #other users(subscriber) feed
+    # When user retweet some tweet, then that tweet will appear in
+    # other users(subscriber) feed
     def re_tweet(user, tweet_id) do
       GenServer.cast(__MODULE__, {:re_tweet,user, tweet_id })
     end
 
     # user will subscribe to subscribe_to_user
-    def subscribe( user, subscribe_to_user ) do
-      GenServer.cast(__MODULE__, {:subscribe,user, subscribe_to_user })
+    def subscribe_user(user, subscribe_to_user) do
+      GenServer.cast(__MODULE__, {:subscribe_user, user, subscribe_to_user})
     end
 
     def handle_call({:register, user, password}, _from, state) do
@@ -87,7 +87,7 @@ defmodule TwitterServer do
       # existing_usres_map = :ets.lookup(:user_lookup, "users")
       # user_details = Map.get( existing_usres_map , user) 
       user_details = :ets.lookup(:user, user)
-      if length( user_details) >  0 do
+      if length(user_details) >  0 do
         # user exists and password matches
         # update the map to have loginflag as 1
         # existing_usres_map = %{ existing_usres_map | user => [password,1] }
@@ -103,6 +103,42 @@ defmodule TwitterServer do
       end
       
       {:reply, state, state}
+    end
+
+    ## As soon as the user subscribes to another user,
+    ## (a) Update Another User's {Subscribed_by_users_list}
+    ## (b) The notification should go to the Another User who's being subscribed by the user. (How??)
+    def handle_call({:subscribe_user, user, subscribe_to_user}, _from, state) do
+      subscribe_details = :ets.lookup(:subscribe, user)
+
+      if length(subscribe_details) == 0 do
+        :ets.insert_new(:subscribe, {user, [], [subscribe_to_user], [], []})
+        IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+      else
+        [ {user, liked_tweets, subscribed_to_users, subscribed_by_users, subscribed_hashtags} ] = subscribe_details
+        subscribed_to_users = subscribed_to_users ++ [subscribe_to_user]
+        :ets.insert(:subscribe, {user, liked_tweets, subscribed_to_users, subscribed_by_users, subscribed_hashtags})
+        IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+      end
+
+      subscribed_by(subscribe_to_user, user)
+      
+      {:reply, state, state}
+    end
+
+    # user will be subscribed_by_user
+    defp subscribed_by(user, subscribed_by_user) do
+      subscribe_details = :ets.lookup(:subscribe, user)
+      
+      if length(subscribe_details) == 0 do
+        :ets.insert_new(:subscribe, {user, [], [], [subscribed_by_user], []})
+        IO.inspect "User #{user} subscribed by User #{subscribed_by_user}"
+      else
+        [ {user, liked_tweets, subscribed_to_users, subscribed_by_users, subscribed_hashtags} ] = subscribe_details
+        subscribed_by_users = subscribed_by_users ++ [subscribed_by_user]
+        :ets.insert(:subscribe, {user, liked_tweets, subscribed_to_users, subscribed_by_users, subscribed_hashtags})
+        IO.inspect "User #{user} subscribed by User #{subscribed_by_user}"
+      end
     end
 
     def handle_call(:get,_from,state) do
