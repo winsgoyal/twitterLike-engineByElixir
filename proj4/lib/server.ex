@@ -101,7 +101,7 @@ defmodule TwitterServer do
         #existing_usres_map = %{ existing_usres_map | user => [password,1] }
         [ {user,stored_password, _} ]  = user_details
         if stored_password == password do
-          :ets.insert_new(:user, {"users", {user, password, 1}})
+          :ets.insert_new(:user, {user, password, 0})
            IO.inspect "User #{user} Login Successfull"
         else
           IO.puts "User name/ password is not correct"
