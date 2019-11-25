@@ -21,6 +21,20 @@ defmodule TwitterServer do
 
       :ets.new(:pending_notifiaction, [:set, :protected, :named_table])
 
+      #store user and its mentiones tweet indexs in respective table rows
+      :ets.new(:mention, [:set, :protected, :named_table])
+
+      #store hashtag and tweets conatining this hashtag indexs in respective table rows
+      :ets.new(:hashtag, [:set, :protected, :named_table])
+
+      #predefined list of hashtags
+      hashtag_list = ["#dos","#twitter", "#project4", "#victory" , "#goal" , "#focus"]
+
+      Enum.each(hashtag_list , fn hash_tag -> 
+        :ets.insert_new(:hashtag, {hash_tag , []} ) 
+      end)
+      
+
       {:ok, state}
     end
 
@@ -32,8 +46,8 @@ defmodule TwitterServer do
       GenServer.call(__MODULE__, {:register,user, password})
     end
 
-    def login(user, password, tween_owner) do
-      GenServer.call(__MODULE__, {:tween_owner,user , password , pid})
+    def login(user , password , pid ) do
+      GenServer.call(__MODULE__, {:login,user , password , pid})
     end
 
     def delete(user) do
@@ -100,7 +114,7 @@ defmodule TwitterServer do
     #to send notification to subscriber
     def handle_cast({:notify_mentioned_users, tweet_owner, tweet} , _state) do
     
-      #get list of subscribe by user
+      #check if contains anu user mentions
       mentioned_user = Regex.scan(~r/@([a-zA-z0-9]*)/,s)
       if length(mentioned_user) > 0 do
         Enum.each( mentioned_user, fn [_,user] -> 
@@ -112,6 +126,7 @@ defmodule TwitterServer do
             #deliver these when users gets back online
             add_pending_notification( user, tweet, tweet_owner <> " has tweeted")
           end
+          :ets.insert_new(:mention, {user , notifications} ) 
         end)
       end
       {:noreply, state }    
@@ -181,7 +196,8 @@ defmodule TwitterServer do
           :ets.insert_new(:user, {user, password, 1, pid})
           intitialize(user)
           #IO.inspect "User #{user} Login Successfull"
-          Genserver.cast({:receive_tweets, })
+          {user,tweets} = :ets.lookup(:tweet, user)
+          Genserver.cast({:receive_tweets, tweets})
           ## add pending login functionality here 
           {:reply, "pass", state}
         else
@@ -231,9 +247,48 @@ defmodule TwitterServer do
         
     end
 
+    #for delete the users from registered list, but will preserve the user tweets
+    def handle_call({ :delete , user },_from,state) do
+      # IO.puts (Enum.at(list,length(list) -1 ) - start_time)
+      :ets.delete(:user, user)
+      user_details = :ets.lookup(:user, user)
+      
+      if length(user_details) == 0 do
+        {:reply, "pass", state}
+      else
+        {:reply, "fail", state}
+      end
+
+      
+  end  
+
+   #for delete the users from registered list, but will preserve the user tweets
+   def handle_call({ :search , user , hashtag },_from,state) do
+    # IO.puts (Enum.at(list,length(list) -1 ) - start_time)
+    
+    user_tweets = :ets.lookup(:tweet, user)
+    user_mentions = :ets.lookup(:user, user)
+
+    
+    if length(user_details) == 0 do
+      {:reply, "pass", state}
+    else
+      {:reply, "fail", state}
+    end
+
+    
+  end 
+  
+  
     def handle_call(:get,_from,state) do
         # IO.puts (Enum.at(list,length(list) -1 ) - start_time)
         {:reply, state, state}
-    end  
+    end 
+    
+    defp get_mention_tweets(user) do
+      
+      user_mentions = :ets.lookup(:tweet, user)
+    end
+  
 
 end
