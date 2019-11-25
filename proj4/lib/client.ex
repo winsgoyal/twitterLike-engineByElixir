@@ -2,7 +2,7 @@ defmodule Client  do
   use GenServer
   
   def start_link(n) do
-     GenServer.start_link(__MODULE__, %{routing_table: [],nodeid: "", backpointers: %{}},name: String.to_atom(n) )
+    GenServer.start_link(__MODULE__, %{routing_table: [],nodeid: "", backpointers: %{}},name: String.to_atom(n) )
     
     # get_in(users, ["john", :age])
     # put_in(users.obj["2344"],["a"])
@@ -78,14 +78,11 @@ defmodule Client  do
 
   #initialize user tweets, if any received from server
   def handle_cast({:receive_tweets, tweets} , state ) do
-
-     :ets.insert_new(:tweet, { user, tweets })
-     {:noreply, state }    
+      :ets.insert_new(:tweet, { user, tweets })
+      {:noreply, state }    
   end
 
-
-  def handle_call( {:tweet, user , tweet }  , state) do
-    
+  def handle_call( {:tweet, user, tweet} , state) do
     {:reply, result, state} = TwitterServer.tweet( user , tweet )
     if result == "pass" do
       tweets = :ets.lookup(:subscribe, user)
@@ -105,8 +102,8 @@ defmodule Client  do
   end
   
   def handle_call({:register, user, password}, _from, state) do
-    TwitterServer.register( user , password ) ;
-    {:reply,state, state , :infinity}
+    TwitterServer.register( user, password ) ;
+    {:reply,state, state, :infinity}
   end
 
   def handle_call({:login, user, password}, _from, state) do
