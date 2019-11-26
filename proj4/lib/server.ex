@@ -15,6 +15,7 @@ defmodule TwitterServer do
       ## {tweet, user, mentions_list, hashstags_list}
       :ets.new(:tweet, [:set, :protected, :named_table])
 
+      
       ## Table: Subscribe
       ## {user, subscribed_by_users_list}
       :ets.new(:subscribe, [:set, :protected, :named_table])
@@ -54,8 +55,12 @@ defmodule TwitterServer do
       GenServer.cast(__MODULE__, {:register,user})
     end
 
-    def search(search_string, hash_tag) do
-      GenServer.cast(__MODULE__, {:register,search_string , hash_tag})
+    def search(search_text) do
+      if String.contains?(search_text, "#" ) do
+        GenServer.call(__MODULE__, {:search_by_hashtag,search_text})
+      else
+        GenServer.call(__MODULE__, {:search_by_user,search_text})
+      end
     end
 
     #will deliver new tweets, mentions
@@ -126,7 +131,14 @@ defmodule TwitterServer do
             #deliver these when users gets back online
             add_pending_notification( user, tweet, tweet_owner <> " has tweeted")
           end
-          :ets.insert_new(:mention, {user , notifications} ) 
+          user_mentions = :ets.lookup(:mention, user)
+          if  length(user_mentions) > 0 do
+            { user, mention_tweets } = user_mentions
+            :ets.insert_new(:mention , user, mention_tweets ++ [tweet])
+          else 
+            :ets.insert_new(:mention , user, [tweet])
+          end
+          :ets.insert_new(:mention, {user , tweet} ) 
         end)
       end
       {:noreply, state }    
@@ -262,21 +274,29 @@ defmodule TwitterServer do
       
   end  
 
-   #for delete the users from registered list, but will preserve the user tweets
-   def handle_call({ :search , user , hashtag },_from,state) do
+   #for searching , when user is not looged in
+   def handle_call({ :search_by_hashtag , hashtag },_from,state) do
     # IO.puts (Enum.at(list,length(list) -1 ) - start_time)
     
-    user_tweets = :ets.lookup(:tweet, user)
-    user_mentions = :ets.lookup(:user, user)
-
+    tweets_with_hashtag = :ets.lookup(:hashtag, hashtag)
     
-    if length(user_details) == 0 do
-      {:reply, "pass", state}
+    if length(tweets_with_hashtag) == 0 do
+      {:reply, [], state}
     else
-      {:reply, "fail", state}
+      {hashtag, tweets} = tweets_with_hashtag
+      {:reply, tweets, state}
     end
 
     
+  end 
+  
+   #for searching , when user is not looged in
+   def handle_call({ :search_by_user , user },_from,state) do
+    # IO.puts (Enum.at(list,length(list) -1 ) - start_time)
+    
+    get_user_tweets(user) ++ user_mentions(user)
+    {:reply, get_user_tweets(user) ++ user_mentions(user), state}
+
   end 
   
   
@@ -285,10 +305,34 @@ defmodule TwitterServer do
         {:reply, state, state}
     end 
     
+    #will return the list of tweets in which user is mentioned
     defp get_mention_tweets(user) do
       
-      user_mentions = :ets.lookup(:tweet, user)
+      user_mentions = :ets.lookup(:mention, user)
+
+      if length(user_mentions) == 0 do
+        []
+      else
+        {user,mention_tweets} = user_mentions
+        mention_tweets
+      end
+
     end
+
+    #will return list of user tweets / if empty return the empty ;=list
+    defp get_user_tweets(user) do
+      
+      user_tweets = :ets.lookup(:tweet, user)
+
+      if length(user_mentions) == 0 do
+        []
+      else
+        {user,tweets} = user_mentions
+        tweets
+      end
+
+    end
+
   
 
 end

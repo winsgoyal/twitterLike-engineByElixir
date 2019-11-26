@@ -58,7 +58,10 @@ defmodule Client  do
     GenServer.cast(pid, {:set_state,routing_table,nodeid})
   end
   
-  
+  #User will tweet, this function then connect to server
+  def search(pid, search_text) do
+    GenServer.cast(pid, {:search, search_text })
+  end
 
 
    #it will receive notification and store the tweets in notification
@@ -74,8 +77,13 @@ defmodule Client  do
     {:noreply, state }    
   end
 
-  
 
+
+   #initialize user tweets, if any received from server
+   def handle_cast(  {:search, search_text } , state ) do
+    {:ok, result, _ } = TwitterServer.search(search_text) ;
+    {:noreply, state }    
+  end
   #initialize user tweets, if any received from server
   def handle_cast({:receive_tweets, tweets} , state ) do
       :ets.insert_new(:tweet, { user, tweets })
@@ -83,12 +91,12 @@ defmodule Client  do
   end
 
   def handle_call( {:tweet, user, tweet} , state) do
-    {:reply, result, state} = TwitterServer.tweet( user , tweet )
+    {:ok, result, state} = TwitterServer.tweet( user , tweet )
     if result == "pass" do
-      tweets = :ets.lookup(:subscribe, user)
+      tweets = :ets.lookup(:tweet, user)
       :ets.insert_new(:tweet, {user, tweets ++ [tweet] })
     else
-      IO.puts "Wither tweet is empty or please try again"
+      IO.puts "tweet is empty or please try again"
     end
     {:reply, state, state, :infinity}  
   end
