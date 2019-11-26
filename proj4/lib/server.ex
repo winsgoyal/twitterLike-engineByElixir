@@ -103,13 +103,13 @@ defmodule TwitterServer do
     
 
     # to send notification to subscriber
-    def handle_cast({:notify_subscribers, tweet_owner, tweet} , _state) do
+    def handle_cast({:notify_subscribers, tweet_owner, tweet} , state) do
       
       # get list of subscribe by user
-      {tweet_owner, subscribedby} = :ets.lookup(:subscribe, tweet_owner)
+      [ {_tweet_owner, subscribedby} ] = :ets.lookup(:subscribe, tweet_owner)
       if length(subscribedby) > 0 do
         Enum.each( subscribedby, fn user -> 
-          {user, _, _, pid} = :ets.lookup(:user, user)
+          [ {tweet_owner, _, _, pid} ] = :ets.lookup(:user, user)
           GenServer.cast(pid, {:notification, tweet, tweet_owner <> " has tweeted "})
         end)
       end
@@ -117,13 +117,13 @@ defmodule TwitterServer do
     end
 
     #to send notification to subscriber
-    def handle_cast({:notify_mentioned_users, tweet_owner, tweet} , _state) do
+    def handle_cast({:notify_mentioned_users, tweet_owner, tweet} , state) do
     
       #check if contains anu user mentions
-      mentioned_user = Regex.scan(~r/@([a-zA-z0-9]*)/,s)
+      mentioned_user = Regex.scan(~r/@([a-zA-z0-9]*)/,tweet)
       if length(mentioned_user) > 0 do
         Enum.each( mentioned_user, fn [_,user] -> 
-          {user, _, login_flag, pid} = :ets.lookup(:user, user)
+          [ {user, _, login_flag, pid} ] = :ets.lookup(:user, user)
           if login_flag == 1 do
             GenServer.cast(pid, {:notification, tweet , tweet_owner <> " has tweeted"})
           else
@@ -133,10 +133,10 @@ defmodule TwitterServer do
           end
           user_mentions = :ets.lookup(:mention, user)
           if  length(user_mentions) > 0 do
-            { user, mention_tweets } = user_mentions
-            :ets.insert_new(:mention , user, mention_tweets ++ [tweet])
+            [{ user, mention_tweets } ] = user_mentions
+            :ets.insert_new(:mention , {user, mention_tweets ++ [tweet] })
           else 
-            :ets.insert_new(:mention , user, [tweet])
+            :ets.insert_new(:mention , {user, [tweet] })
           end
           :ets.insert_new(:mention, {user , tweet} ) 
         end)
@@ -148,8 +148,8 @@ defmodule TwitterServer do
       user_pending_notification = :ets.lookup(:pending_notifiaction, user)
 
       if length(user_pending_notification) > 0 do
-        {user , notifications} = user_pending_notification
-        notifications ++ [[tweet , message]]
+        [ {user , notifications} ] = user_pending_notification
+        notifications = notifications ++ [[tweet , message]]
         :ets.insert_new(:pending_notifiaction, {user , notifications} ) 
       else
         :ets.insert_new(:pending_notifiaction, {user, [[tweet , message]]}) 
@@ -163,13 +163,12 @@ defmodule TwitterServer do
          {user , notifications} = user_pending_notification
          
           if length(notifications) > 0 do
+            {_user , _ , _ , pid} = :ets.lookup(:user , user)
             Enum.each( notifications, fn [tweet,message] ->  
               GenServer.cast(pid, {:notification, tweet , message }) 
             end)
           end
-        :ets.insert_new(:pending_notifiaction, {user , notifications} ) 
-      else
-        :ets.insert_new(:pending_notifiaction, {user, [[tweet , message]]}) 
+         
       end
     end
 
@@ -206,10 +205,14 @@ defmodule TwitterServer do
         [ {user, stored_password, _ , _} ] = user_details
         if stored_password == password do
           :ets.insert_new(:user, {user, password, 1, pid})
-          intitialize(user)
-          #IO.inspect "User #{user} Login Successfull"
-          {user,tweets} = :ets.lookup(:tweet, user)
-          Genserver.cast({:receive_tweets, tweets})
+          initialize(user)
+          #IO.initialize "User #{user} Login Successfull"
+         # IO.inspect :ets.lookup(:tweet, user)
+         tweets = get_user_tweets(user)
+          if length( tweets ) > 0 do
+            GenServer.cast(pid ,{:receive_tweets, tweets })
+          end
+          
           ## add pending login functionality here 
           {:reply, "pass", state}
         else
@@ -223,7 +226,7 @@ defmodule TwitterServer do
     
     end
 
-    defp intialize(user) do
+    defp initialize(_user) do
       # do all the intialization if tables are empty
     end
 
@@ -249,7 +252,7 @@ defmodule TwitterServer do
 
         if String.length( tweet_text ) > 0 do
           #get old tweets and so that we can update the list
-          {user, user_tweets} = :ets.lookup(:tweet, user)
+          [ {user, user_tweets} ] = :ets.lookup(:tweet, user)
           
           :ets.insert_new(:tweet, {user, user_tweets ++ [tweet_text] })
           {:reply, "pass", state}
@@ -283,7 +286,7 @@ defmodule TwitterServer do
     if length(tweets_with_hashtag) == 0 do
       {:reply, [], state}
     else
-      {hashtag, tweets} = tweets_with_hashtag
+      [ {_hashtag, tweets} ] = tweets_with_hashtag
       {:reply, tweets, state}
     end
 
@@ -294,8 +297,8 @@ defmodule TwitterServer do
    def handle_call({ :search_by_user , user },_from,state) do
     # IO.puts (Enum.at(list,length(list) -1 ) - start_time)
     
-    get_user_tweets(user) ++ user_mentions(user)
-    {:reply, get_user_tweets(user) ++ user_mentions(user), state}
+   # get_user_tweets(user) ++ get_mention_tweets(user)
+    {:reply, get_user_tweets(user) ++ get_mention_tweets(user), state}
 
   end 
   
@@ -305,6 +308,8 @@ defmodule TwitterServer do
         {:reply, state, state}
     end 
     
+     
+
     #will return the list of tweets in which user is mentioned
     defp get_mention_tweets(user) do
       
@@ -313,7 +318,7 @@ defmodule TwitterServer do
       if length(user_mentions) == 0 do
         []
       else
-        {user,mention_tweets} = user_mentions
+        [ {_user, mention_tweets} ]= user_mentions
         mention_tweets
       end
 
@@ -324,10 +329,10 @@ defmodule TwitterServer do
       
       user_tweets = :ets.lookup(:tweet, user)
 
-      if length(user_mentions) == 0 do
+      if length(user_tweets) == 0 do
         []
       else
-        {user,tweets} = user_mentions
+        [ {_user,tweets} ] = user_tweets
         tweets
       end
 

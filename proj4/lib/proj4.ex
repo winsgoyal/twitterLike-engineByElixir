@@ -8,10 +8,21 @@ defmodule Proj4.TwitterEngine do
     
     { _, [users, numRequests], _ } = OptionParser.parse(args , strict: [n: :integer, n: :integer])
 
+     # this user notifications
+     :ets.new(:notification, [:set, :protected, :named_table])
+     
     users = String.to_integer(users)
     {:ok, _pid} =   MySupervisor.start_link([users,numRequests])
     list = Enum.to_list(1..users )
     
+     # this user tweets
+    # :ets.new(:tweet, [:set, :protected, :named_table])
+
+    
+
+    # this user mentions
+    #:ets.new(:mention, [:set, :protected, :named_table])
+
     # Register each user
     Enum.each( list, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )   

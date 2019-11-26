@@ -2,7 +2,7 @@ defmodule Client  do
   use GenServer
   
   def start_link(n) do
-    GenServer.start_link(__MODULE__, %{routing_table: [],nodeid: "", backpointers: %{}},name: String.to_atom(n) )
+    GenServer.start_link(__MODULE__, %{user_name: n },name: String.to_atom(n) )
     
     # get_in(users, ["john", :age])
     # put_in(users.obj["2344"],["a"])
@@ -11,14 +11,7 @@ defmodule Client  do
   
   def init(state) do
 
-    # this user tweets
-    :ets.new(:tweet, [:set, :protected, :named_table])
-
-     # this user notifications
-    :ets.new(:notification, [:set, :protected, :named_table])
-
-    # this user mentions
-    :ets.new(:mention, [:set, :protected, :named_table])
+   
 
     {:ok, state}
   end
@@ -63,15 +56,40 @@ defmodule Client  do
     GenServer.cast(pid, {:search, search_text })
   end
 
+  #function to insert values into mention table
+  defp insert_in_mention( user , tweet )  do
+
+    user_mentions = :ets.lookup(:mention, user)
+    if length(user_mentions) == 0 do
+      :ets.insert_new(:mention, {user,  [tweet] })
+    else
+     [ {user, tweets} ] =  user_mentions
+    :ets.insert_new(:mention, {user, tweets ++ [tweet] })
+    end
+    
+  end
+
+  #function to insert values into notification table
+  defp insert_in_notification( user , tweet )  do
+
+    user_notifications = :ets.lookup(:notification, user)
+    if length(user_notifications) == 0 do
+      :ets.insert_new(:notification, {user,  [tweet] })
+    else
+     [ {user, tweets} ] =  user_notifications
+    :ets.insert_new(:notification, {user, tweets ++ [tweet] })
+    end
+    
+  end
 
    #it will receive notification and store the tweets in notification
    # if user is mentioned than stored in mentioned table
-   def handle_cast({:notification, tweet , message } , state ) do
+   def handle_cast({:notification, tweet , message } , %{user_name: user} = state ) do
     IO.puts "Notification" <> message
     if String.contains?(tweet, "@" ) do
-      :ets.insert_new(:mention, {user, tweets ++ [tweet] })
+      insert_in_mention(user, tweet)
     else
-      :ets.insert_new(:notification, {user, tweets ++ [tweet] })
+      insert_in_notification(user, tweet)
     end
     
     {:noreply, state }    
@@ -81,16 +99,21 @@ defmodule Client  do
 
    #initialize user tweets, if any received from server
    def handle_cast(  {:search, search_text } , state ) do
-    {:ok, result, _ } = TwitterServer.search(search_text) ;
+    {:ok, _result, _ } = TwitterServer.search(search_text) ;
     {:noreply, state }    
   end
   #initialize user tweets, if any received from server
-  def handle_cast({:receive_tweets, tweets} , state ) do
+  def handle_cast({:receive_tweets, tweets} , %{user_name: user} =state ) do
       :ets.insert_new(:tweet, { user, tweets })
       {:noreply, state }    
   end
 
-  def handle_call( {:tweet, user, tweet} , state) do
+  def handle_cast({:subscribe_to, user, subscribe_to_user}, _from, state) do
+    TwitterServer.subscribe_user(user, subscribe_to_user)
+    {:noreply, state }
+  end
+
+  def handle_call( {:tweet, user, tweet} , _state) do
     {:ok, result, state} = TwitterServer.tweet( user , tweet )
     if result == "pass" do
       tweets = :ets.lookup(:tweet, user)
@@ -105,21 +128,19 @@ defmodule Client  do
     {:reply, state, state, :infinity}
   end
 
-  def handle_call(:get, _from, state) do
-    {:reply, state, state, :infinity}
-  end
-  
   def handle_call({:register, user, password}, _from, state) do
     TwitterServer.register( user, password ) ;
     {:reply,state, state, :infinity}
   end
 
   def handle_call({:login, user, password}, _from, state) do
-    {:reply, result, state} = TwitterServer.login( user, password , self() )
-
+    #{:reply, result, state} = 
+    result =  TwitterServer.login( user, password , self() )
+    
     if result == "pass" do
-      :ets.insert_new(:tweet, {user, []})
-      :ets.insert_new(:notification, {user, []})
+     # :ets.insert_new(:tweet, {user, []})
+      #:ets.insert_new(:notification, {user, []})
+      IO.puts "Login Success"
     else
       IO.puts "Login Failed, Please check Credentials"
     end
@@ -127,10 +148,7 @@ defmodule Client  do
     {:reply, state, state, :infinity}
   end
 
-  def handle_cast ({:subscribe_to, user, subscribe_to_user}, _from, state) do
-    TwitterServer.subscribe_user(user, subscribe_to_user)
-    {:noreply, state }
-  end
+
   
   def handle_call(:set, _from, state) do
     {:reply, state, [], :infinity}

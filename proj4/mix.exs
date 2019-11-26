@@ -22,7 +22,7 @@ defmodule TwitterP1.MixProject do
   end
 
   def escript do
-    [main_module: Proj3.Tapestry]
+    [main_module: Proj4.TwitterEngine]
   end
   
   # Run "mix help deps" to learn about dependencies.
