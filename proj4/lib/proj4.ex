@@ -9,7 +9,10 @@ defmodule Proj4.TwitterEngine do
     { _, [users, numRequests], _ } = OptionParser.parse(args , strict: [n: :integer, n: :integer])
 
      # this user notifications
-     :ets.new(:notification, [:set, :protected, :named_table])
+     :ets.new(:notification, [:set, :public, :named_table])
+     
+     # this user notifications
+     :ets.new(:client_tweet, [:set, :public, :named_table])
      
     users = String.to_integer(users)
     {:ok, _pid} =   MySupervisor.start_link([users,numRequests])
@@ -34,6 +37,23 @@ defmodule Proj4.TwitterEngine do
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
       Client.login( pid, Integer.to_string(user), "user" <> Integer.to_string(user) )
     end )
+
+   
+    #Tweet from Each User
+    Enum.each( 1..users, fn user -> 
+      pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+      Client.tweet( pid, Integer.to_string(user), "user" <> Integer.to_string(user) )
+    end )
+
+
+    #Subscribe Users
+    Enum.each( 2..users, fn user -> 
+      pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+      Client.subscribe_to( pid, Integer.to_string(user), Integer.to_string(1) )
+    end )
+    
+    pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
+    Client.tweet( pid, Integer.to_string(1), "user" <> Integer.to_string(1) )
 
     ## Random selection between calling Function (i), i belongs to (1 .. n)
     ## Function 1

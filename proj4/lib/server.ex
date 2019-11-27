@@ -80,13 +80,13 @@ defmodule TwitterServer do
 
     # user will subscribe to subscribe_to_user
     def subscribe_user(user, subscribe_to_user) do
-      GenServer.cast(__MODULE__, {:subscribe_user, user, subscribe_to_user})
+      GenServer.call(__MODULE__, {:subscribe_user, user, subscribe_to_user})
     end
 
     # send notifications to the subscribe users 
     #user_list is list of users who have subscribed to user tweeter_owner
     def notify_subscribers(tweet_owner, tweet) do
-      GenServer.cast(__MODULE__, {:notify, tweet_owner, tweet})
+      GenServer.cast(__MODULE__, {:notify_subscribers, tweet_owner, tweet})
     end
 
     # send notifications to the mentioned users 
@@ -106,15 +106,31 @@ defmodule TwitterServer do
     def handle_cast({:notify_subscribers, tweet_owner, tweet} , state) do
       
       # get list of subscribe by user
-      [ {_tweet_owner, subscribedby} ] = :ets.lookup(:subscribe, tweet_owner)
-      if length(subscribedby) > 0 do
-        Enum.each( subscribedby, fn user -> 
+     subscribers = get_subscribers(tweet_owner)
+
+      if length(subscribers) > 0 do
+        Enum.each( subscribers, fn user -> 
           [ {tweet_owner, _, _, pid} ] = :ets.lookup(:user, user)
           GenServer.cast(pid, {:notification, tweet, tweet_owner <> " has tweeted "})
         end)
       end
       {:noreply, state }    
     end
+
+     #will return the list of tweets in which user is mentioned
+     defp get_subscribers(user) do
+      
+      user_subscribers = :ets.lookup(:subscribe, user)
+
+      if length(user_subscribers) == 0 do
+        []
+      else
+        [ {_user, subscribers} ]= user_subscribers
+        subscribers
+      end
+
+    end
+
 
     #to send notification to subscriber
     def handle_cast({:notify_mentioned_users, tweet_owner, tweet} , state) do
@@ -244,7 +260,7 @@ defmodule TwitterServer do
         IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
       end
       
-      {:reply, state, state}
+      {:reply, "pass", state}
     end
 
     def handle_call({:tweet, user, tweet_text} ,_from, state) do
@@ -252,15 +268,17 @@ defmodule TwitterServer do
 
         if String.length( tweet_text ) > 0 do
           #get old tweets and so that we can update the list
-          [ {user, user_tweets} ] = :ets.lookup(:tweet, user)
-          
-          :ets.insert_new(:tweet, {user, user_tweets ++ [tweet_text] })
+          add_tweet(user,tweet_text)
+          notify_subscribers(user , tweet_text)
           {:reply, "pass", state}
         else
           {:reply, "fail", state}
         end
         
     end
+
+    
+    
 
     #for delete the users from registered list, but will preserve the user tweets
     def handle_call({ :delete , user },_from,state) do
@@ -338,6 +356,16 @@ defmodule TwitterServer do
 
     end
 
-  
+    defp add_tweet(user, tweet) do
+      user_tweets = :ets.lookup(:tweet, user)
+
+      if length(user_tweets) > 0 do
+        [ {user, tweets} ] = user_tweets
+        tweets = tweets ++ [tweet]
+        :ets.insert_new(:tweet, {user , tweets} ) 
+      else
+        :ets.insert_new(:tweet, {user, [tweet]}) 
+      end
+    end
 
 end

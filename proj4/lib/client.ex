@@ -38,7 +38,7 @@ defmodule Client  do
   end
 
   def subscribe_to(pid, user, subscribe_to_user) do
-    GenServer.cast(pid, {:subscribe_to, user, subscribe_to_user})
+    GenServer.call(pid, {:subscribe_to, user, subscribe_to_user})
   end
 
  
@@ -104,20 +104,25 @@ defmodule Client  do
   end
   #initialize user tweets, if any received from server
   def handle_cast({:receive_tweets, tweets} , %{user_name: user} =state ) do
-      :ets.insert_new(:tweet, { user, tweets })
+      :ets.insert_new(:client_tweet, { user, tweets })
       {:noreply, state }    
   end
 
-  def handle_cast({:subscribe_to, user, subscribe_to_user}, _from, state) do
-    TwitterServer.subscribe_user(user, subscribe_to_user)
-    {:noreply, state }
+  def handle_call({:subscribe_to, user, subscribe_to_user}, _from, state) do
+    result = TwitterServer.subscribe_user(user, subscribe_to_user)
+    IO.inspect result
+    if result == 'ok' do
+      IO.puts "User " <> user <> " has succefully subscribe the user " <> subscribe_to_user
+    end
+    {:reply, state, state }
   end
 
-  def handle_call( {:tweet, user, tweet} , _state) do
-    {:ok, result, state} = TwitterServer.tweet( user , tweet )
+  def handle_call( {:tweet, user, tweet} , _from ,state) do
+    result = TwitterServer.tweet( user , tweet )
     if result == "pass" do
-      tweets = :ets.lookup(:tweet, user)
-      :ets.insert_new(:tweet, {user, tweets ++ [tweet] })
+      IO.puts "User " <> user <>" has tweeted " <> tweet
+      tweets = :ets.lookup(:client_tweet, user)
+      :ets.insert_new(:client_tweet, {user, tweets ++ [tweet] })
     else
       IO.puts "tweet is empty or please try again"
     end
@@ -138,9 +143,9 @@ defmodule Client  do
     result =  TwitterServer.login( user, password , self() )
     
     if result == "pass" do
-     # :ets.insert_new(:tweet, {user, []})
-      #:ets.insert_new(:notification, {user, []})
-      IO.puts "Login Success"
+      :ets.insert_new(:client_tweet, {user, []})
+      :ets.insert_new(:notification, {user, []})
+      IO.puts "User " <> user <> " Login Success"
     else
       IO.puts "Login Failed, Please check Credentials"
     end
