@@ -49,11 +49,26 @@ defmodule Proj4.TwitterEngine do
     #Subscribe Users
     Enum.each( 2..users, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+      
+      #IO.inspect "Debug subscribe loop " <> user
       Client.subscribe_to( pid, Integer.to_string(user), Integer.to_string(1) )
     end )
     
     pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
     Client.tweet( pid, Integer.to_string(1), "user" <> Integer.to_string(1) )
+
+    :timer.sleep(1000);
+    IO.inspect :ets.lookup(:notification, "3")
+
+    #Logout Users
+    Enum.each( 1..users, fn user -> 
+      pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+      #IO.inspect "Debug subscribe loop " <> user
+      Client.logout( pid, Integer.to_string(user))
+    end )
+
+
+    
 
     ## Random selection between calling Function (i), i belongs to (1 .. n)
     ## Function 1

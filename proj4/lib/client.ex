@@ -32,12 +32,18 @@ defmodule Client  do
     GenServer.call(pid, {:login, user, password})
   end
 
+  def logout(pid, user) do
+    GenServer.call(pid, {:logout, user})
+  end
+
   #User will tweet, this function then connect to server
   def tweet(pid, user, tweet) do
     GenServer.call(pid, {:tweet, user , tweet })
   end
 
   def subscribe_to(pid, user, subscribe_to_user) do
+    #IO.puts "Debug subscribe_to"
+    #IO.inspect user
     GenServer.call(pid, {:subscribe_to, user, subscribe_to_user})
   end
 
@@ -70,30 +76,34 @@ defmodule Client  do
   end
 
   #function to insert values into notification table
-  defp insert_in_notification( user , tweet )  do
+  defp insert_in_notification( user , tweet, tweet_owner )  do
 
     user_notifications = :ets.lookup(:notification, user)
+    #IO.puts "Debug insert_in_notification"
+    #O.inspect tweet
+    #IO.puts user
     if length(user_notifications) == 0 do
-      :ets.insert_new(:notification, {user,  [tweet] })
+      :ets.insert_new(:notification, {user,  [tweet,tweet_owner] })
     else
      [ {user, tweets} ] =  user_notifications
-    :ets.insert_new(:notification, {user, tweets ++ [tweet] })
+    :ets.insert(:notification, {user, tweets ++ [tweet,tweet_owner] })
     end
     
   end
 
    #it will receive notification and store the tweets in notification
    # if user is mentioned than stored in mentioned table
-   def handle_cast({:notification, tweet , message } , %{user_name: user} = state ) do
-    IO.puts "Notification" <> message
+   def handle_cast({:notification, tweet , tweet_owner,  message } , %{user_name: user} = state ) do
+    IO.puts "User " <> user <> " Notification: " <> message
     if String.contains?(tweet, "@" ) do
       insert_in_mention(user, tweet)
     else
-      insert_in_notification(user, tweet)
+      insert_in_notification(user, tweet, tweet_owner)
     end
     
     {:noreply, state }    
   end
+
 
 
 
@@ -110,8 +120,9 @@ defmodule Client  do
 
   def handle_call({:subscribe_to, user, subscribe_to_user}, _from, state) do
     result = TwitterServer.subscribe_user(user, subscribe_to_user)
-    IO.inspect result
-    if result == 'ok' do
+    #IO.puts "Debug subscribe_to"
+    #IO.inspect user
+    if result == "pass" do
       IO.puts "User " <> user <> " has succefully subscribe the user " <> subscribe_to_user
     end
     {:reply, state, state }
@@ -153,7 +164,21 @@ defmodule Client  do
     {:reply, state, state, :infinity}
   end
 
+  def handle_call({:logout, user}, _from, state) do
+    #{:reply, result, state} = 
+    result =  TwitterServer.logout( user  )
+    
+    if result == "pass" do
+      :ets.insert(:client_tweet, {user, []})
+      :ets.insert(:notification, {user, []})
+      IO.puts "User " <> user <> " Logout Success"
+    else
+      IO.puts "Logout Failed, Please try again"
+    end
 
+    {:reply, state, state, :infinity}
+  end
+  
   
   def handle_call(:set, _from, state) do
     {:reply, state, [], :infinity}

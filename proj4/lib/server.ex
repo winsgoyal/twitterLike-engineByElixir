@@ -51,6 +51,10 @@ defmodule TwitterServer do
       GenServer.call(__MODULE__, {:login,user , password , pid})
     end
 
+    def logout( user ) do
+      GenServer.call(__MODULE__, {:logout, user })
+    end
+
     def delete(user) do
       GenServer.cast(__MODULE__, {:register,user})
     end
@@ -110,8 +114,11 @@ defmodule TwitterServer do
 
       if length(subscribers) > 0 do
         Enum.each( subscribers, fn user -> 
-          [ {tweet_owner, _, _, pid} ] = :ets.lookup(:user, user)
-          GenServer.cast(pid, {:notification, tweet, tweet_owner <> " has tweeted "})
+          #IO.puts "Debug Subscriber" <> user
+          #IO.inspect :ets.lookup(:user , user)
+          # :timer.sleep(4000);
+          [ {_user, _, _, pid} ] = :ets.lookup(:user, user)
+          GenServer.cast(pid, {:notification, tweet, tweet_owner,  "User " <> tweet_owner <> " has tweeted "})
         end)
       end
       {:noreply, state }    
@@ -141,7 +148,7 @@ defmodule TwitterServer do
         Enum.each( mentioned_user, fn [_,user] -> 
           [ {user, _, login_flag, pid} ] = :ets.lookup(:user, user)
           if login_flag == 1 do
-            GenServer.cast(pid, {:notification, tweet , tweet_owner <> " has tweeted"})
+            GenServer.cast(pid, {:notification, tweet , tweet_owner , tweet_owner <> " has tweeted"})
           else
             #add it the pending notification list list
             #deliver these when users gets back online
@@ -179,9 +186,10 @@ defmodule TwitterServer do
          {user , notifications} = user_pending_notification
          
           if length(notifications) > 0 do
+            
             {_user , _ , _ , pid} = :ets.lookup(:user , user)
             Enum.each( notifications, fn [tweet,message] ->  
-              GenServer.cast(pid, {:notification, tweet , message }) 
+              GenServer.cast(pid, {:notification, tweet , +message }) 
             end)
           end
          
@@ -220,7 +228,7 @@ defmodule TwitterServer do
         # existing_usres_map = %{ existing_usres_map | user => [password,1] }
         [ {user, stored_password, _ , _} ] = user_details
         if stored_password == password do
-          :ets.insert_new(:user, {user, password, 1, pid})
+          :ets.insert(:user, {user, password, 1, pid})
           initialize(user)
           #IO.initialize "User #{user} Login Successfull"
          # IO.inspect :ets.lookup(:tweet, user)
@@ -252,14 +260,15 @@ defmodule TwitterServer do
 
       if length(subscribe_details) == 0 do
         :ets.insert_new(:subscribe, {subscribe_to_user, [user]})
-        IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+        #IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
       else
-        [ {user, subscribed_by_users} ] = subscribe_details
+        [ {subscribe_to_user, subscribed_by_users} ] = subscribe_details
         subscribed_by_users = subscribed_by_users ++ [user]
         :ets.insert(:subscribe, {subscribe_to_user, subscribed_by_users})
-        IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+        #IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
       end
-      
+      #IO.puts "Debug subscribe_user"
+      #IO.inspect :ets.lookup(:subscribe , subscribe_to_user)
       {:reply, "pass", state}
     end
 
@@ -279,6 +288,28 @@ defmodule TwitterServer do
 
     
     
+     # change pid to gproc, as pid can change, if supervisor restarts user process
+     def handle_call({:logout, user }, _from, state) do
+      
+      # existing_usres_map = :ets.lookup(:user_lookup, "users")
+      # user_details = Map.get( existing_usres_map , user) 
+      user_details = :ets.lookup(:user, user)
+      if length(user_details) > 0 do
+        # user exists and password matches
+        # update the map to have loginflag as 1
+        # existing_usres_map = %{ existing_usres_map | user => [password,1] }
+        [ {user, stored_password, _ , pid} ] = user_details
+        
+          :ets.insert(:user, {user, stored_password, 0, pid})
+          ## add pending login functionality here 
+          {:reply, "pass", state}
+        else
+          IO.puts "Please try again"
+          {:reply, "fail", state}
+        
+      end
+    
+    end
 
     #for delete the users from registered list, but will preserve the user tweets
     def handle_call({ :delete , user },_from,state) do
