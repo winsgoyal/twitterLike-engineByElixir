@@ -1,9 +1,9 @@
-defmodule TwitterP1.MixProject do
+defmodule Proj4.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :twitter_p1,
+      app: :proj4,
       version: "0.1.0",
       elixir: "~> 1.9",
       build_embedded: Mix.env == :prod,
