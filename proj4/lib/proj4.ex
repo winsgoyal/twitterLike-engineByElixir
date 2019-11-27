@@ -60,6 +60,9 @@ defmodule Proj4.TwitterEngine do
     :timer.sleep(1000);
     IO.inspect :ets.lookup(:notification, "3")
 
+    pid = Process.whereis( String.to_atom(Integer.to_string(2)) )
+    Client.tweet( pid, Integer.to_string(2), "#focus, everyday do something productive" <> Integer.to_string(1) )
+
     #Logout Users
     Enum.each( 1..users, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
@@ -68,7 +71,14 @@ defmodule Proj4.TwitterEngine do
     end )
 
 
+    #Search for User 2
     
+    pid = Process.whereis( String.to_atom(Integer.to_string(2)) )
+    #IO.inspect "Debug subscribe loop " <> user
+    Client.search( pid, "#focus" )
+
+    #:timer.sleep(10000);
+
 
     ## Random selection between calling Function (i), i belongs to (1 .. n)
     ## Function 1

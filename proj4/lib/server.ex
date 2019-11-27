@@ -31,6 +31,7 @@ defmodule TwitterServer do
       #predefined list of hashtags
       hashtag_list = ["#dos","#twitter", "#project4", "#victory" , "#goal" , "#focus"]
 
+
       Enum.each(hashtag_list , fn hash_tag -> 
         :ets.insert_new(:hashtag, {hash_tag , []} ) 
       end)
@@ -393,9 +394,35 @@ defmodule TwitterServer do
       if length(user_tweets) > 0 do
         [ {user, tweets} ] = user_tweets
         tweets = tweets ++ [tweet]
-        :ets.insert_new(:tweet, {user , tweets} ) 
+        :ets.insert(:tweet, {user , tweets} ) 
       else
         :ets.insert_new(:tweet, {user, [tweet]}) 
+      end
+
+      check_for_hashtag(user, tweet)
+    end
+
+    defp add_tweet_with_hashtag(_user, tweet, hashtag) do
+      hashtag_tweets = :ets.lookup(:hashtag, hashtag)
+      #IO.puts "Debug add_tweet_with_hashtag"
+      #IO.inspect hashtag_tweets
+      if length(hashtag_tweets) > 0 do
+        [ {hashtag, tweets} ] = hashtag_tweets
+        tweets = tweets ++ [tweet]
+        :ets.insert(:hashtag, {hashtag, tweets} ) 
+      end
+    end
+
+    defp check_for_hashtag(user,tweet) do
+      hashtags = Regex.scan(~r/#([a-zA-z0-9]*)/,tweet)
+      #IO.puts "Debug check_for_hashtag" 
+      #IO.puts tweet
+      #IO.inspect hashtags
+      if length(hashtags) > 0 do
+        Enum.each( hashtags, fn [hashtag,_] -> 
+          add_tweet_with_hashtag(user, tweet , hashtag)
+        end )
+      
       end
     end
 

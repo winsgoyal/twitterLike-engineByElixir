@@ -109,7 +109,9 @@ defmodule Client  do
 
    #initialize user tweets, if any received from server
    def handle_cast(  {:search, search_text } , state ) do
-    {:ok, _result, _ } = TwitterServer.search(search_text) ;
+    result = TwitterServer.search(search_text) ;
+    IO.puts "Found tweets with given search string " <>  search_text
+    IO.inspect result
     {:noreply, state }    
   end
   #initialize user tweets, if any received from server
