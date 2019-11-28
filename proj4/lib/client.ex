@@ -10,9 +10,6 @@ defmodule Client  do
   end
   
   def init(state) do
-
-   
-
     {:ok, state}
   end
   
@@ -147,7 +144,7 @@ defmodule Client  do
   end
 
   def handle_call({:register, user, password}, _from, state) do
-    TwitterServer.register( user, password ) ;
+    TwitterServer.register( user, password )
     {:reply,state, state, :infinity}
   end
 
