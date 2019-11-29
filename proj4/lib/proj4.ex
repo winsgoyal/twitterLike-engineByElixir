@@ -6,7 +6,7 @@ defmodule Proj4.TwitterEngine do
   import Supervisor, warn: false
   def main(args \\ []) do
     
-    { _, [users, numTweets], _ } = OptionParser.parse(args , strict: [n: :integer, n: :integer])
+    { _, [users, numTweets, maxSubscribers , percentageOfDisconnection], _ } = OptionParser.parse(args , strict: [n: :integer, n: :integer])
 
      # this user notifications
      #:ets.new(:notification, [:set, :public, :named_table])
@@ -16,6 +16,8 @@ defmodule Proj4.TwitterEngine do
      
     users = String.to_integer(users)
     numTweets = String.to_integer(numTweets)
+    maxSubscribers = String.to_integer(numTweets)
+    percentageOfDisconnection = String.to_integer(numTweets)
     {:ok, _pid} =   MySupervisor.start_link([users,numTweets])
     list = Enum.to_list(1..users )
     
@@ -64,7 +66,7 @@ defmodule Proj4.TwitterEngine do
     #Subscribe Users
     Enum.each( 1..users, fn user -> 
 
-      random_users = Enum.take_random(user_list -- [user], Kernel.trunc(length(user_list)/3) + 1 )
+      random_users = Enum.take_random(user_list -- [user], Kernel.trunc(maxSubscribers/user) + 1 )
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
       Enum.each(random_users, fn subscribe_to_user -> 
         Client.subscribe_to( pid, Integer.to_string(user), Integer.to_string(subscribe_to_user) )
