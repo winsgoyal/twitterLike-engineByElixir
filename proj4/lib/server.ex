@@ -2,7 +2,7 @@ defmodule TwitterServer do
     use GenServer
 
     def start_link() do
-        GenServer.start_link(__MODULE__, {0},name: __MODULE__ )
+        GenServer.start_link(__MODULE__, {tweet_count = 0},name: __MODULE__ )
     end
 
     def init(state) do
@@ -15,7 +15,9 @@ defmodule TwitterServer do
       ## {tweet, user, mentions_list, hashstags_list}
       :ets.new(:tweet, [:set, :protected, :named_table])
 
-      
+      #retweet, will contains which users has retweeted what tweets
+      #format user is key, [[tweet_owner, tweet_index]]
+      :ets.new(:retweet, [:set, :protected, :named_table])
       ## Table: Subscribe
       ## {user, subscribed_by_users_list}
       :ets.new(:subscribe, [:set, :protected, :named_table])
@@ -79,8 +81,8 @@ defmodule TwitterServer do
 
     # When user retweet some tweet, then that tweet will appear in
     # other users(subscriber) feed
-    def re_tweet(user, tweet_id) do
-      GenServer.cast(__MODULE__, {:re_tweet, user, tweet_id})
+    def re_tweet(user, tweet_owner , tweet_id) do
+      GenServer.call(__MODULE__, {:re_tweet, user, tweet_owner , tweet_id})
     end
 
     # user will subscribe to subscribe_to_user
@@ -90,8 +92,8 @@ defmodule TwitterServer do
 
     # send notifications to the subscribe users 
     #user_list is list of users who have subscribed to user tweeter_owner
-    def notify_subscribers(tweet_owner, tweet) do
-      GenServer.cast(__MODULE__, {:notify_subscribers, tweet_owner, tweet})
+    def notify_subscribers(tweet_owner, tweet, index ) do
+      GenServer.cast(__MODULE__, {:notify_subscribers, tweet_owner, tweet , index})
     end
 
     # send notifications to the mentioned users 
@@ -108,7 +110,7 @@ defmodule TwitterServer do
     
 
     # to send notification to subscriber
-    def handle_cast({:notify_subscribers, tweet_owner, tweet} , state) do
+    def handle_cast({:notify_subscribers, tweet_owner, tweet , index} , state) do
       
       # get list of subscribe by user
      subscribers = get_subscribers(tweet_owner)
@@ -119,7 +121,7 @@ defmodule TwitterServer do
           #IO.inspect :ets.lookup(:user , user)
           # :timer.sleep(4000);
           [ {_user, _, _, pid} ] = :ets.lookup(:user, user)
-          GenServer.cast(pid, {:notification, tweet, tweet_owner,  "User " <> tweet_owner <> " has tweeted "})
+          GenServer.cast(pid, {:notification, tweet, tweet_owner, index,   "User " <> tweet_owner <> " has tweeted "})
         end)
       end
       {:noreply, state }    
@@ -139,6 +141,8 @@ defmodule TwitterServer do
 
     end
 
+   
+    
 
     #to send notification to subscriber
     def handle_cast({:notify_mentioned_users, tweet_owner, tweet} , state) do
@@ -198,6 +202,30 @@ defmodule TwitterServer do
     end
 
 
+
+    
+
+    #this function will notify the subscribers of user, if tweets any particular tweet
+    def handle_call({:re_tweet, user, tweet_owner , tweet_id}, _from, state) do
+      
+      # existing_usres_map = :ets.lookup(:user, "users")
+      # existing_usres_map = %{ existing_usres_map | user => [password, 0] }
+      # existing_usres_map = Map.put(existing_usres_map, "a", 100)
+      tweet = get_user_tweet_at_index(user , tweet_id)
+      if String.length(tweet) > 0 do
+
+        #add retweet to retweet tables
+        add_retweet(user , tweet_owner, tweet_id)
+        notify_subscribers(user , tweet ,tweet_id)
+        
+        {:reply, "pass", state}
+      else
+        
+        IO.inspect "retweet fail for user " <> user 
+        {:reply, "fail", state}
+      end 
+ 
+    end
 
 
     def handle_call({:register, user, password}, _from, state) do
@@ -277,9 +305,9 @@ defmodule TwitterServer do
         # IO.puts (Enum.at(list,length(list) -1) - start_time)
 
         if String.length( tweet_text ) > 0 do
-          #get old tweets and so that we can update the list
-          add_tweet(user,tweet_text)
-          notify_subscribers(user , tweet_text)
+          #add tweet to thi user tweets
+          index =  add_tweet(user,tweet_text)
+          notify_subscribers(user , tweet_text ,index)
           {:reply, "pass", state}
         else
           {:reply, "fail", state}
@@ -388,6 +416,23 @@ defmodule TwitterServer do
 
     end
 
+    #get this user tweet at particulat index
+    defp get_user_tweet_at_index( user , index) do
+      
+      user_tweets = :ets.lookup(:tweet, user)
+
+      if length(user_tweets) == 0 do
+        []
+      else
+        [ {_user,tweets} ] = user_tweets
+        if length(tweets) <= index do
+          []
+        else
+          Enum.at(tweets , index)
+        end
+      end
+    end
+
     defp add_tweet(user, tweet) do
       user_tweets = :ets.lookup(:tweet, user)
 
@@ -400,6 +445,36 @@ defmodule TwitterServer do
       end
 
       check_for_hashtag(user, tweet)
+      user_tweets = :ets.lookup(:tweet, user)
+      [ {_user, tweets} ] = user_tweets
+      length(tweets) - 1
+    end
+
+    defp add_retweet( user, tweet_owner, tweet_index) do
+      
+      retweets = get_retweet(user)
+
+      if length( retweets ) > 0 do
+        retweets = retweets ++ [[tweet_owner,tweet_index]]
+        :ets.insert(:retweet, {user, retweets} ) 
+
+      else  
+        :ets.insert_new(:retweet, {user, [ [tweet_owner , tweet_index] ]} ) 
+      end
+
+      
+
+    end
+
+    defp get_retweet( user) do
+      user_retweets = :ets.lookup(:retweet, user)
+
+      if length(user_retweets) == 0 do
+        []
+      else
+        [ {_user,retweets} ] = user_retweets
+        retweets
+      end
     end
 
     defp add_tweet_with_hashtag(_user, tweet, hashtag) do

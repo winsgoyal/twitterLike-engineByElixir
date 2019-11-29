@@ -58,9 +58,32 @@ defmodule Client  do
   def search(pid, search_text) do
     GenServer.cast(pid, {:search, search_text })
   end
+ 
+  # this function will retweet tweets from server upon login (mostly) and set the user tweets table
+  def retweet_tweet(pid , tweet , tweet_owner , index)  do
+    if String.length(tweet) > 0 do
+      GenServer.call(pid, {:retweet_tweet, tweet , tweet_owner , index})
+    end
+  end
 
+  def get_random_tweet_from_notification(user) do
+      user_notification = :ets.lookup(:notification, user)
+
+      if length(user_notification) == 0 do
+        []
+      else
+        [ {_user,tweets} ] = user_notification
+        if length(tweets) > 0 do
+          Enum.random(tweets)
+        else
+          []
+        end
+        
+        tweets
+      end
+  end
   #function to insert values into mention table
-  defp insert_in_mention( user , tweet )  do
+  defp insert_in_mention( user , tweet , index )  do
 
     user_mentions = :ets.lookup(:mention, user)
     if length(user_mentions) == 0 do
@@ -73,35 +96,49 @@ defmodule Client  do
   end
 
   #function to insert values into notification table
-  defp insert_in_notification( user , tweet, tweet_owner )  do
+  defp insert_in_notification( user , tweet, tweet_owner , index )  do
 
     user_notifications = :ets.lookup(:notification, user)
     #IO.puts "Debug insert_in_notification"
     #O.inspect tweet
     #IO.puts user
     if length(user_notifications) == 0 do
-      :ets.insert_new(:notification, {user,  [tweet,tweet_owner] })
+      :ets.insert_new(:notification, {user,  [tweet,tweet_owner , index] })
     else
      [ {user, tweets} ] =  user_notifications
-    :ets.insert(:notification, {user, tweets ++ [tweet,tweet_owner] })
+    :ets.insert(:notification, {user, tweets ++ [tweet,tweet_owner , index] })
     end
     
   end
 
    #it will receive notification and store the tweets in notification
    # if user is mentioned than stored in mentioned table
-   def handle_cast({:notification, tweet , tweet_owner,  message } , %{user_name: user} = state ) do
+   def handle_cast({:notification, tweet , tweet_owner, index,  message } , %{user_name: user} = state ) do
     IO.puts "User " <> user <> " Notification: " <> message
     if String.contains?(tweet, "@" ) do
-      insert_in_mention(user, tweet)
+      insert_in_mention(user, tweet , index)
     else
-      insert_in_notification(user, tweet, tweet_owner)
+      insert_in_notification(user, tweet, tweet_owner , index)
     end
     
     {:noreply, state }    
   end
-
-
+    
+    #it will receive notification and store the tweets in notification
+   # if user is mentioned than stored in mentioned table
+   def handle_call({:retweet_tweet, tweet , tweet_owner , index} , _from, %{user_name: user} = state ) do
+    
+    #server will add to retweet list notify the user subscribers if any
+    result = TwitterServer.re_tweet( user , tweet_owner , index ) 
+    if result == "pass" do
+      IO.puts "User " <> user <> "  has retweeted the tweet " <> tweet
+      {:reply, "pass", state}  
+    else
+      IO.puts "User " <> user <> " retweet unsuccesull, Please try again"
+      {:reply, "fail", state}  
+    end
+     
+  end
 
 
    #initialize user tweets, if any received from server
@@ -138,6 +175,8 @@ defmodule Client  do
     end
     {:reply, state, state, :infinity}  
   end
+
+
 
   def handle_call(:get, _from, state) do
     {:reply, state, state, :infinity}

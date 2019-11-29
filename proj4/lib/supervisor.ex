@@ -5,6 +5,11 @@ defmodule MySupervisor do
   use Supervisor
 
   def start_link(init_arg) do 
+     # this user notifications
+     :ets.new(:notification, [:set, :public, :named_table])
+     
+     # this user notifications
+     :ets.new(:client_tweet, [:set, :public, :named_table])
     Supervisor.start_link(__MODULE__,init_arg)
   end
 

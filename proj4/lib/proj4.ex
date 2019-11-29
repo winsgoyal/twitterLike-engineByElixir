@@ -9,10 +9,10 @@ defmodule Proj4.TwitterEngine do
     { _, [users, numRequests], _ } = OptionParser.parse(args , strict: [n: :integer, n: :integer])
 
      # this user notifications
-     :ets.new(:notification, [:set, :public, :named_table])
+     #:ets.new(:notification, [:set, :public, :named_table])
      
      # this user notifications
-     :ets.new(:client_tweet, [:set, :public, :named_table])
+     #:ets.new(:client_tweet, [:set, :public, :named_table])
      
     users = String.to_integer(users)
     {:ok, _pid} =   MySupervisor.start_link([users,numRequests])
@@ -54,14 +54,28 @@ defmodule Proj4.TwitterEngine do
       Client.subscribe_to( pid, Integer.to_string(user), Integer.to_string(1) )
     end )
     
+
     pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
     Client.tweet( pid, Integer.to_string(1), "user" <> Integer.to_string(1) )
 
     :timer.sleep(1000);
-    IO.inspect :ets.lookup(:notification, "3")
+    IO.inspect :ets.lookup(:notification, "2")
 
     pid = Process.whereis( String.to_atom(Integer.to_string(2)) )
     Client.tweet( pid, Integer.to_string(2), "#focus, everyday do something productive" <> Integer.to_string(1) )
+
+    #user 1 subscribing to user2
+    pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
+    Client.subscribe_to( pid, "1", "2" )
+
+    tweetinfo = Client.get_random_tweet_from_notification("2")
+    if length(tweetinfo) > 0 do
+      IO.puts "retweet"
+      [tweet, tweet_owner, index ] = tweetinfo
+      pid = Process.whereis( String.to_atom(Integer.to_string(2)) )
+    Client.retweet_tweet(pid , tweet , tweet_owner , index)
+    end
+    
 
     #Logout Users
     Enum.each( 1..users, fn user -> 
@@ -77,7 +91,7 @@ defmodule Proj4.TwitterEngine do
     #IO.inspect "Debug subscribe loop " <> user
     Client.search( pid, "#focus" )
 
-    #:timer.sleep(10000);
+    :timer.sleep(10000);
 
 
     ## Random selection between calling Function (i), i belongs to (1 .. n)
