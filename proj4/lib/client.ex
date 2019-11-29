@@ -56,9 +56,13 @@ defmodule Client  do
   
   #User will tweet, this function then connect to server
   def search(pid, search_text) do
-    GenServer.cast(pid, {:search, search_text })
+    GenServer.call(pid, {:search, search_text })
   end
  
+  def deactivate(pid, user) do
+    GenServer.call(pid, {:deactivate, user })
+  end
+
   # this function will retweet tweets from server upon login (mostly) and set the user tweets table
   def retweet_tweet(pid , tweet , tweet_owner , index)  do
     if String.length(tweet) > 0 do
@@ -74,12 +78,16 @@ defmodule Client  do
       else
         [ {_user,tweets} ] = user_notification
         if length(tweets) > 0 do
-          Enum.random(tweets)
+          #IO.puts length(tweets)
+          
+          tweet = Enum.take_random(tweets,1)
+          #IO.inspect tweet
+          tweet
         else
           []
         end
         
-        tweets
+        
       end
   end
   #function to insert values into mention table
@@ -100,13 +108,13 @@ defmodule Client  do
 
     user_notifications = :ets.lookup(:notification, user)
     #IO.puts "Debug insert_in_notification"
-    #O.inspect tweet
+    #IO.inspect tweet
     #IO.puts user
     if length(user_notifications) == 0 do
-      :ets.insert_new(:notification, {user,  [tweet,tweet_owner , index] })
+      :ets.insert_new(:notification, {user,  [[tweet,tweet_owner , index]] })
     else
      [ {user, tweets} ] =  user_notifications
-    :ets.insert(:notification, {user, tweets ++ [tweet,tweet_owner , index] })
+    :ets.insert(:notification, {user, tweets ++ [[tweet,tweet_owner , index]] })
     end
     
   end
@@ -124,6 +132,21 @@ defmodule Client  do
     {:noreply, state }    
   end
     
+  
+  def handle_call({:deactivate, user } , _from, %{user_name: user} = state ) do
+    
+    #server will add to retweet list notify the user subscribers if any
+    result = TwitterServer.delete( user  ) 
+    if result == "pass" do
+      IO.puts "User " <> user <> "  deleted successfully "
+      {:reply, "pass", state}  
+    else
+      IO.puts "User " <> user <> " delettion unsucesesfull"
+      {:reply, "fail", state}  
+    end
+     
+  end
+
     #it will receive notification and store the tweets in notification
    # if user is mentioned than stored in mentioned table
    def handle_call({:retweet_tweet, tweet , tweet_owner , index} , _from, %{user_name: user} = state ) do
@@ -134,7 +157,7 @@ defmodule Client  do
       IO.puts "User " <> user <> "  has retweeted the tweet " <> tweet
       {:reply, "pass", state}  
     else
-      IO.puts "User " <> user <> " retweet unsuccesull, Please try again"
+      IO.puts "User " <> user <> " retweet " <> tweet <> " unsuccesull, Please try again"
       {:reply, "fail", state}  
     end
      
@@ -142,11 +165,11 @@ defmodule Client  do
 
 
    #initialize user tweets, if any received from server
-   def handle_cast(  {:search, search_text } , state ) do
+   def handle_call(  {:search, search_text } , _from , state ) do
     result = TwitterServer.search(search_text) ;
     IO.puts "Found tweets with given search string " <>  search_text
     IO.inspect result
-    {:noreply, state }    
+    {:reply, state ,  state }    
   end
   #initialize user tweets, if any received from server
   def handle_cast({:receive_tweets, tweets} , %{user_name: user} =state ) do

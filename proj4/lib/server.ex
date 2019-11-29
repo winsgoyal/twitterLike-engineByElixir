@@ -59,7 +59,7 @@ defmodule TwitterServer do
     end
 
     def delete(user) do
-      GenServer.cast(__MODULE__, {:register,user})
+      GenServer.call(__MODULE__, {:delete,user})
     end
 
     def search(search_text) do
@@ -92,8 +92,8 @@ defmodule TwitterServer do
 
     # send notifications to the subscribe users 
     #user_list is list of users who have subscribed to user tweeter_owner
-    def notify_subscribers(tweet_owner, tweet, index ) do
-      GenServer.cast(__MODULE__, {:notify_subscribers, tweet_owner, tweet , index})
+    def notify_subscribers(user , tweet_owner, tweet, index , message \\ "") do
+      GenServer.cast(__MODULE__, {:notify_subscribers, user , tweet_owner, tweet , index , message})
     end
 
     # send notifications to the mentioned users 
@@ -110,10 +110,10 @@ defmodule TwitterServer do
     
 
     # to send notification to subscriber
-    def handle_cast({:notify_subscribers, tweet_owner, tweet , index} , state) do
+    def handle_cast({:notify_subscribers, user, tweet_owner, tweet , index , message} , state) do
       
       # get list of subscribe by user
-     subscribers = get_subscribers(tweet_owner)
+      subscribers = get_subscribers(user)
 
       if length(subscribers) > 0 do
         Enum.each( subscribers, fn user -> 
@@ -121,7 +121,11 @@ defmodule TwitterServer do
           #IO.inspect :ets.lookup(:user , user)
           # :timer.sleep(4000);
           [ {_user, _, _, pid} ] = :ets.lookup(:user, user)
-          GenServer.cast(pid, {:notification, tweet, tweet_owner, index,   "User " <> tweet_owner <> " has tweeted "})
+          if message != "" do
+            GenServer.cast(pid, {:notification, tweet, tweet_owner, index,   message})
+          else
+            GenServer.cast(pid, {:notification, tweet, tweet_owner, index,   "User " <> user <> " has tweeted "})
+          end
         end)
       end
       {:noreply, state }    
@@ -211,12 +215,12 @@ defmodule TwitterServer do
       # existing_usres_map = :ets.lookup(:user, "users")
       # existing_usres_map = %{ existing_usres_map | user => [password, 0] }
       # existing_usres_map = Map.put(existing_usres_map, "a", 100)
-      tweet = get_user_tweet_at_index(user , tweet_id)
+      tweet = get_user_tweet_at_index(tweet_owner , tweet_id)
       if String.length(tweet) > 0 do
 
         #add retweet to retweet tables
         add_retweet(user , tweet_owner, tweet_id)
-        notify_subscribers(user , tweet ,tweet_id)
+        notify_subscribers(user ,tweet_owner , tweet ,tweet_id , "User " <> user <> " has re-tweeted " <> tweet)
         
         {:reply, "pass", state}
       else
@@ -307,7 +311,7 @@ defmodule TwitterServer do
         if String.length( tweet_text ) > 0 do
           #add tweet to thi user tweets
           index =  add_tweet(user,tweet_text)
-          notify_subscribers(user , tweet_text ,index)
+          notify_subscribers(user , user , tweet_text ,index)
           {:reply, "pass", state}
         else
           {:reply, "fail", state}
@@ -422,13 +426,13 @@ defmodule TwitterServer do
       user_tweets = :ets.lookup(:tweet, user)
 
       if length(user_tweets) == 0 do
-        []
+        ""
       else
         [ {_user,tweets} ] = user_tweets
         if length(tweets) <= index do
-          []
+          ""
         else
-          Enum.at(tweets , index)
+          Enum.at(tweets , index )
         end
       end
     end

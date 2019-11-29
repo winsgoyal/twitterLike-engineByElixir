@@ -6,7 +6,7 @@ defmodule Proj4.TwitterEngine do
   import Supervisor, warn: false
   def main(args \\ []) do
     
-    { _, [users, numRequests], _ } = OptionParser.parse(args , strict: [n: :integer, n: :integer])
+    { _, [users, numTweets], _ } = OptionParser.parse(args , strict: [n: :integer, n: :integer])
 
      # this user notifications
      #:ets.new(:notification, [:set, :public, :named_table])
@@ -15,23 +15,29 @@ defmodule Proj4.TwitterEngine do
      #:ets.new(:client_tweet, [:set, :public, :named_table])
      
     users = String.to_integer(users)
-    {:ok, _pid} =   MySupervisor.start_link([users,numRequests])
+    numTweets = String.to_integer(numTweets)
+    {:ok, _pid} =   MySupervisor.start_link([users,numTweets])
     list = Enum.to_list(1..users )
     
      # this user tweets
     # :ets.new(:tweet, [:set, :protected, :named_table])
 
-    
+    user_list = Enum.to_list(1..users) 
 
     # this user mentions
     #:ets.new(:mention, [:set, :protected, :named_table])
 
+    IO.puts "********************************************************************"
+    IO.puts "*************** Registration ********************"
     # Register each user
     Enum.each( list, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )   
       Client.register( pid, Integer.to_string(user), "user" <> Integer.to_string(user) )  
     end )
 
+    IO.puts "********************************************************************"
+
+    IO.puts "*********************** Login ******************"
     #Login Each User
     Enum.each( 1..users, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
@@ -39,44 +45,72 @@ defmodule Proj4.TwitterEngine do
     end )
 
    
+    IO.puts "********************************************************************"
+
+    IO.puts "*********************** Tweet ******************"
     #Tweet from Each User
     Enum.each( 1..users, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
-      Client.tweet( pid, Integer.to_string(user), "user" <> Integer.to_string(user) )
+      Enum.each(1..numTweets , fn tweet_number ->
+        Client.tweet( pid, Integer.to_string(user), "user" <> Integer.to_string(user) <> " tweet no. " <> Integer.to_string(tweet_number) )
+      end)
+      
     end )
 
 
+    IO.puts "********************************************************************"
+
+    IO.puts "*********************** Subscription ******************"
     #Subscribe Users
-    Enum.each( 2..users, fn user -> 
+    Enum.each( 1..users, fn user -> 
+
+      random_users = Enum.take_random(user_list -- [user], Kernel.trunc(length(user_list)/3) + 1 )
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
-      
+      Enum.each(random_users, fn subscribe_to_user -> 
+        Client.subscribe_to( pid, Integer.to_string(user), Integer.to_string(subscribe_to_user) )
+      end )
       #IO.inspect "Debug subscribe loop " <> user
-      Client.subscribe_to( pid, Integer.to_string(user), Integer.to_string(1) )
+      
     end )
     
 
-    pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
-    Client.tweet( pid, Integer.to_string(1), "user" <> Integer.to_string(1) )
+   # pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
+   # Client.tweet( pid, Integer.to_string(1), "user" <> Integer.to_string(1) )
 
     :timer.sleep(1000);
-    IO.inspect :ets.lookup(:notification, "2")
+    #IO.inspect :ets.lookup(:notification, "2")
 
-    pid = Process.whereis( String.to_atom(Integer.to_string(2)) )
-    Client.tweet( pid, Integer.to_string(2), "#focus, everyday do something productive" <> Integer.to_string(1) )
+    IO.puts "********************************************************************"
 
-    #user 1 subscribing to user2
+    IO.puts "*********************** Tweet with hash tag #focus ******************"
     pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
-    Client.subscribe_to( pid, "1", "2" )
+    Client.tweet( pid, Integer.to_string(1), "#focus, everyday do something productive" <> Integer.to_string(1) )
+    :timer.sleep(1000);
+    #user 1 subscribing to user2
+    #pid = Process.whereis( String.to_atom(Integer.to_string(1)) )
+    #Client.subscribe_to( pid, "1", "2" )
+    #IO.inspect :ets.lookup(:notification, "4")
 
-    tweetinfo = Client.get_random_tweet_from_notification("2")
-    if length(tweetinfo) > 0 do
-      IO.puts "retweet"
-      [tweet, tweet_owner, index ] = tweetinfo
-      pid = Process.whereis( String.to_atom(Integer.to_string(2)) )
-    Client.retweet_tweet(pid , tweet , tweet_owner , index)
-    end
-    
+    IO.puts "********************************************************************"
 
+    IO.puts "*********************** Re-Tweet ******************" 
+    #retweets
+    Enum.each( 1..users, fn user -> 
+      tweetinfo = Client.get_random_tweet_from_notification(Integer.to_string(user) )
+
+      if length(tweetinfo) > 0 do
+        #IO.puts "retweet " <> Integer.to_string(user)
+        [tweet, tweet_owner, index ] = List.flatten(tweetinfo)
+        pid = Process.whereis( String.to_atom(Integer.to_string(user))) 
+      Client.retweet_tweet(pid , tweet , tweet_owner , index)
+      end
+      #IO.inspect "Debug subscribe loop " <> user
+      
+    end )
+
+    IO.puts "********************************************************************"
+
+    IO.puts "*********************** Logout ******************"
     #Logout Users
     Enum.each( 1..users, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
@@ -85,11 +119,41 @@ defmodule Proj4.TwitterEngine do
     end )
 
 
-    #Search for User 2
+    IO.puts "********************************************************************"
+
+    IO.puts "*********************** Search with hastag $focus ******************"
+    #Search for tweet with hashtag #focus
     
     pid = Process.whereis( String.to_atom(Integer.to_string(2)) )
     #IO.inspect "Debug subscribe loop " <> user
     Client.search( pid, "#focus" )
+
+
+    IO.puts "********************************************************************"
+
+    IO.puts "*********************** Search with usernames ******************"
+    #search for each users tweet
+    #Logout Users
+    Enum.each( 1..users, fn user -> 
+      pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+      #IO.inspect "Debug subscribe loop " <> user
+      Client.search( pid, Integer.to_string(user))
+    end )
+
+
+    IO.puts "********************************************************************"
+
+    IO.puts "*********************** Deactivation ******************"
+    #search for each users tweet
+    #Logout Users
+    Enum.each( 1..users, fn user -> 
+      pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+      #IO.inspect "Debug subscribe loop " <> user
+      Client.deactivate( pid, Integer.to_string(user))
+    end )
+
+    
+
 
     :timer.sleep(10000);
 
