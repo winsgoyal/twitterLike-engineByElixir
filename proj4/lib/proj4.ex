@@ -18,13 +18,20 @@ defmodule Proj4.TwitterEngine do
     numTweets = String.to_integer(numTweets)
     maxSubscribers = String.to_integer(maxSubscribers)
     percentageOfDisconnection = String.to_integer(percentageOfDisconnection)
+    noOfDisconnection = Kernel.trunc((percentageOfDisconnection * users ) / 100 )
+    
+   
     {:ok, _pid} =   MySupervisor.start_link([users,numTweets])
     list = Enum.to_list(1..users )
+
+    
     
      # this user tweets
     # :ets.new(:tweet, [:set, :protected, :named_table])
 
     user_list = Enum.to_list(1..users) 
+
+    disconnectedUsers = Enum.take_random(user_list , noOfDisconnection)
 
     # this user mentions
     #:ets.new(:mention, [:set, :protected, :named_table])
@@ -44,9 +51,14 @@ defmodule Proj4.TwitterEngine do
     Enum.each( 1..users, fn user -> 
       pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
       Client.login( pid, Integer.to_string(user), "user" <> Integer.to_string(user) )
+      IO.inspect :ets.lookup(:user, Integer.to_string(user))
     end )
 
-    Client.periodic_signin(user_list)
+    Enum.each(disconnectedUsers , fn user ->
+      pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+      Client.schedule_login_logout( pid )
+    end)
+   
    
     IO.puts "********************************************************************"
 
@@ -64,7 +76,7 @@ defmodule Proj4.TwitterEngine do
     IO.puts "********************************************************************"
 
     IO.puts "*********************** Subscription ******************"
-    #Subscribe Users
+    #Subscribe Usersmi
     Enum.each( 1..users, fn user -> 
 
       random_users = Enum.take_random(user_list -- [user], Kernel.trunc(maxSubscribers/user) + 1 )
@@ -149,11 +161,11 @@ defmodule Proj4.TwitterEngine do
     IO.puts "*********************** Deactivation ******************"
     #search for each users tweet
     #Logout Users
-    Enum.each( 1..users, fn user -> 
-      pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
-      #IO.inspect "Debug subscribe loop " <> user
-      Client.deactivate( pid, Integer.to_string(user))
-    end )
+    # Enum.each( 1..users, fn user -> 
+    #   pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+    #   #IO.inspect "Debug subscribe loop " <> user
+    #   Client.deactivate( pid, Integer.to_string(user))
+    # end )
 
     
 
