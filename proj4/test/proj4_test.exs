@@ -2,14 +2,36 @@ defmodule Proj4Test do
     use ExUnit.Case
 
     def set_up(numClients) do
-        :ets.new(:notification, [:set, :public, :named_table])
+        
      
+        if :ets.whereis(:notification) != :undefined do
+            :ets.delete(:notification)
+        end
+        if :ets.whereis(:client_tweet) != :undefined do
+            :ets.delete(:client_tweet)
+        end
+
+        :ets.new(:notification, [:set, :public, :named_table])
         # this user notifications
         :ets.new(:client_tweet, [:set, :public, :named_table])
 
         TwitterServer.start_link()
         Enum.each(1..numClients, fn n -> Client.start_link("#{n}") end)
     end
+
+    def get_tweets_length_notification(user) do
+        user_notification = :ets.lookup(:notification, user)
+    
+        if length(user_notification) == 0 do
+          0
+        else
+          [ {_user,tweets} ] = user_notification
+          length(tweets)
+          end
+          
+          
+        end
+    
 
     test "register user" do
         IO.puts "Test 1"
@@ -183,7 +205,7 @@ defmodule Proj4Test do
       end
 
       test "1 tweet with hashtag for every  users"  do
-        IO.puts "Test 14"
+        IO.puts "Test 15"
         numUsers = 10
         numTweets = 1
         set_up( numUsers )
@@ -205,7 +227,7 @@ defmodule Proj4Test do
       end
 
       test "1 tweet with mention for every  users"  do
-        IO.puts "Test 14"
+        IO.puts "Test 16"
         numUsers = 10
         numTweets = 1
         set_up( numUsers )
@@ -226,6 +248,152 @@ defmodule Proj4Test do
        
       end
 
+      test "Subscription and notifications"  do
+        IO.puts "Test 17"
+        numUsers = 10
+        numTweets = 1
+        user_list = Enum.to_list(1..numUsers)
+        set_up( numUsers )
 
+        
+        IO.puts "Login and Registration"
+        Enum.each(1..numUsers , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
     
-end
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+
+        
+    end)
+
+    IO.puts "********Subscriptions***********"
+  
+    numUsers = numUsers - 1 
+    user_list = Enum.to_list(1..numUsers)
+    
+
+Enum.each( user_list, fn user -> 
+
+    subscirbe_to_user = user + 1
+    pid = Process.whereis( String.to_atom(Integer.to_string(user)) )
+   
+    assert Client.subscribe_to( pid, Integer.to_string(user), Integer.to_string(subscirbe_to_user) ) == "pass"
+    
+end)
+    IO.puts "******** Tweets ***********"
+    
+    Enum.each(user_list , fn user -> 
+     
+        #notification length of its subscribers
+        notification_length = get_tweets_length_notification( Integer.to_string(user + 1)  )
+        Enum.each(1..numTweets , fn tweet_number ->
+        assert Client.tweet( :"#{user}", Integer.to_string(user), "user" <> Integer.to_string(user) <> " tweet no. " <> Integer.to_string(tweet_number) ) == "pass"
+        Process.sleep(1000)
+        IO.puts "******** Verifying Notification is received **********"
+        assert get_tweets_length_notification( Integer.to_string(user + 1)  ) == notification_length
+    end)
+
+   
+
+   
+   
+
+end)
+
+
+
+   
+
+    #IO.inspect "Debug subscribe loop " <> user
+    
+ 
+
+
+  
+       
+      end
+
+
+      test "Logout 1 User"  do
+        IO.puts "Test 18"
+        numUsers = 1
+        numTweets = 1
+        set_up( numUsers )
+
+        
+
+        Enum.each(1..numUsers , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
+    
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+
+            assert Client.logout( :"#{user}", "#{user}" ) == "pass"
+           
+    end)
+       
+      end
+    
+
+      test "Logout 1000 User"  do
+        IO.puts "Test 9"
+        numUsers = 1000
+        numTweets = 1
+        set_up( numUsers )
+
+        
+
+        Enum.each(1..numUsers , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
+    
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+
+            assert Client.logout( :"#{user}", "#{user}" ) == "pass"
+           
+    end)
+       
+      end
+
+
+     
+    
+#       test "Query by user/mention"  do
+#         IO.puts "Test 9"
+#         numUsers = 1000
+#         numTweets = 1
+#         set_up( numUsers )
+
+        
+
+#         Enum.each(1..numUsers , fn user -> 
+#             result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+#             assert result == "pass"
+    
+#             assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+#             IO.puts "Success: User is logged in now\n"
+
+#             Enum.each(1..numTweets , fn tweet_number ->
+#                             assert Client.tweet( :"#{user}", Integer.to_string(user), "user" <> Integer.to_string(user) <> " tweet no. " <> Integer.to_string(tweet_number) ) == "pass"
+#                         end) 
+
+#             assert Client.logout( :"#{user}", "#{user}" ) == "pass"
+           
+#     end)
+
+#     Enum.each(1..numUsers , fn user -> 
+        
+#         assert length ( Client.search( :"#{user}", "#{user}" )  ) > 0
+       
+# end)
+
+# IO.puts "Search Successfull"
+
+
+       
+#       end
+
+    end

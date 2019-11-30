@@ -11,7 +11,7 @@ defmodule MySupervisor do
     # this user notifications
     :ets.new(:client_tweet, [:set, :public, :named_table])
     
-    Supervisor.start_link(__MODULE__, init_arg)
+    Supervisor.start_link(__MODULE__, init_arg, name: :supervisor)
   end
 
   # arg1: numUsers, arg2: numRequest

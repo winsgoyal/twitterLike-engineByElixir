@@ -22,51 +22,51 @@ defmodule Client  do
   end
   
   def register(pid, user, password) do
-    GenServer.call(pid, {:register, user, password})
+    GenServer.call(pid, {:register, user, password} , :infinity)
   end
 
   def login(pid, user, password) do
-    GenServer.call(pid, {:login, user, password})
+    GenServer.call(pid, {:login, user, password}, :infinity)
   end
 
   def logout(pid, user) do
-    GenServer.call(pid, {:logout, user})
+    GenServer.call(pid, {:logout, user}, :infinity)
   end
 
   #User will tweet, this function then connect to server
   def tweet(pid, user, tweet) do
-    GenServer.call(pid, {:tweet, user , tweet })
+    GenServer.call(pid, {:tweet, user , tweet } , :infinity)
   end
 
   def subscribe_to(pid, user, subscribe_to_user) do
     #IO.puts "Debug subscribe_to"
     #IO.inspect user
-    GenServer.call(pid, {:subscribe_to, user, subscribe_to_user})
+    GenServer.call(pid, {:subscribe_to, user, subscribe_to_user} , :infinity)
   end
 
  
   # this function will receive tweets from server upon login (mostly) and set the user tweets table
   def receive_tweets(pid , tweets)  do
-    GenServer.cast(pid, {:receive_tweets, tweets})
+    GenServer.cast(pid, {:receive_tweets, tweets} , :infinity)
   end
   
   def set_state(pid, nodeid, routing_table) do  
-    GenServer.cast(pid, {:set_state,routing_table,nodeid})
+    GenServer.cast(pid, {:set_state,routing_table,nodeid} )
   end
   
   #User will tweet, this function then connect to server
   def search(pid, search_text) do
-    GenServer.call(pid, {:search, search_text })
+    GenServer.call(pid, {:search, search_text } , :infinity)
   end
  
   def deactivate(pid, user) do
-    GenServer.call(pid, {:deactivate, user })
+    GenServer.call(pid, {:deactivate, user } , :infinity)
   end
 
   # this function will retweet tweets from server upon login (mostly) and set the user tweets table
   def retweet_tweet(pid , tweet , tweet_owner , index)  do
     if String.length(tweet) > 0 do
-      GenServer.call(pid, {:retweet_tweet, tweet , tweet_owner , index})
+      GenServer.call(pid, {:retweet_tweet, tweet , tweet_owner , index} , :infinity)
     end
   end
 
@@ -90,6 +90,9 @@ defmodule Client  do
         
       end
   end
+
+
+
   #function to insert values into mention table
   defp insert_in_mention( user , tweet , index )  do
 
@@ -170,7 +173,7 @@ defmodule Client  do
     result = TwitterServer.search(search_text) ;
     IO.puts "Found tweets with given search string " <>  search_text
     IO.inspect result
-    {:reply, state ,  state }    
+    {:reply, result ,  state }    
   end
   #initialize user tweets, if any received from server
   def handle_cast({:receive_tweets, tweets} , %{user_name: user} =state ) do
@@ -184,8 +187,11 @@ defmodule Client  do
     #IO.inspect user
     if result == "pass" do
       IO.puts "User " <> user <> " has succefully subscribe the user " <> subscribe_to_user
+      {:reply, "pass", state }
+    else
+      {:reply, "fail" , state }
     end
-    {:reply, state, state }
+    
   end
 
   def handle_call( {:tweet, user, tweet} , _from ,state) do
@@ -194,10 +200,12 @@ defmodule Client  do
       IO.puts "User " <> user <>" has tweeted " <> tweet
       tweets = :ets.lookup(:client_tweet, user)
       :ets.insert_new(:client_tweet, {user, tweets ++ [tweet] })
+      {:reply, "pass", state, :infinity}  
     else
       IO.puts "tweet is empty or please try again"
+      {:reply, "fail", state, :infinity}  
     end
-    {:reply, state, state, :infinity}  
+   
   end
 
 
@@ -243,11 +251,13 @@ defmodule Client  do
       :ets.insert(:client_tweet, {user, []})
       :ets.insert(:notification, {user, []})
       IO.puts "User " <> user <> " Logout Success"
+      {:reply, "pass", state, :infinity}
     else
       IO.puts "Logout Failed, Please try again"
+      {:reply, "pass", state, :infinity}
     end
 
-    {:reply, state, state, :infinity}
+    
   end
   
   

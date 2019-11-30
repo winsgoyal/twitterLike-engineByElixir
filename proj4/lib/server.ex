@@ -47,26 +47,26 @@ defmodule TwitterServer do
     end
 
     def register(user, password) do
-      GenServer.call(__MODULE__, {:register,user, password})
+      GenServer.call(__MODULE__, {:register,user, password} , :infinity)
     end
 
     def login(user , password , pid ) do
-      GenServer.call(__MODULE__, {:login,user , password , pid})
+      GenServer.call(__MODULE__, {:login,user , password , pid } , :infinity)
     end
 
     def logout( user ) do
-      GenServer.call(__MODULE__, {:logout, user })
+      GenServer.call(__MODULE__, {:logout, user } , :infinity)
     end
 
     def delete(user) do
-      GenServer.call(__MODULE__, {:delete,user})
+      GenServer.call(__MODULE__, {:delete,user} , :infinity)
     end
 
     def search(search_text) do
       if String.contains?(search_text, "#" ) do
-        GenServer.call(__MODULE__, {:search_by_hashtag,search_text})
+        GenServer.call(__MODULE__, {:search_by_hashtag,search_text} , :infinity)
       else
-        GenServer.call(__MODULE__, {:search_by_user,search_text})
+        GenServer.call(__MODULE__, {:search_by_user,search_text} , :infinity)
       end
     end
 
@@ -76,18 +76,18 @@ defmodule TwitterServer do
     end
     
     def tweet(user, tweet_text) do
-      GenServer.call(__MODULE__, {:tweet,user, tweet_text })
+      GenServer.call(__MODULE__, {:tweet,user, tweet_text } , :infinity)
     end
 
     # When user retweet some tweet, then that tweet will appear in
     # other users(subscriber) feed
     def re_tweet(user, tweet_owner , tweet_id) do
-      GenServer.call(__MODULE__, {:re_tweet, user, tweet_owner , tweet_id})
+      GenServer.call(__MODULE__, {:re_tweet, user, tweet_owner , tweet_id} , :infinity)
     end
 
     # user will subscribe to subscribe_to_user
     def subscribe_user(user, subscribe_to_user) do
-      GenServer.call(__MODULE__, {:subscribe_user, user, subscribe_to_user})
+      GenServer.call(__MODULE__, {:subscribe_user, user, subscribe_to_user} , :infinity)
     end
 
     # send notifications to the subscribe users 
