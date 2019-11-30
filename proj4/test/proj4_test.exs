@@ -225,7 +225,7 @@ defmodule Proj4Test do
     end
 
     test "subscribe users" do
-        IO.puts "======================= Test 6 ==========================="
+        IO.puts "======================= Test 15 ==========================="
         numUsers = 3
         set_up(numUsers)
         Client.subscribe_to(:"#{1}", "#{1}", "#{2}")
@@ -243,7 +243,7 @@ defmodule Proj4Test do
     end
     
     test "user tries to subscribe himself" do
-        IO.puts "======================= Test 7 ==========================="
+        IO.puts "======================= Test 16 ==========================="
         numUsers = 2
         set_up(numUsers)
         Client.subscribe_to(:"#{1}", "#{1}", "#{2}")
@@ -256,7 +256,7 @@ defmodule Proj4Test do
     end
 
     test "user tries to subscribe other user again" do
-      IO.puts "======================= Test 8 ==========================="
+      IO.puts "======================= Test 17 ==========================="
       numUsers = 2
       set_up(numUsers)
       Client.subscribe_to(:"#{1}", "#{1}", "#{2}")
