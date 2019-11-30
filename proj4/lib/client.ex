@@ -232,7 +232,7 @@ defmodule Client  do
       {:reply, "fail", state, :infinity}
     end
 
-    {:reply, state, state, :infinity}
+   
   end
 
   def handle_call({:logout, user}, _from, state) do

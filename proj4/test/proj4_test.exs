@@ -43,7 +43,7 @@ defmodule Proj4Test do
       test "whether Hashtag table exists" do
         IO.puts "Test 4"
         numUsers = 3
-        numMsgs = 10
+        
         set_up(numUsers)
         refute :ets.whereis(:hashtag) == :undefined
         IO.puts "Success: Hashtag table exists\n"
@@ -56,7 +56,7 @@ defmodule Proj4Test do
     test "can't create duplicate user"  do
         IO.puts "Test 7"
         numUsers = 3
-        numMsgs = 10
+        
         set_up( numUsers )
         Client.register( :"#{1}", "#{1}", "user#{1}" )
         
@@ -65,6 +65,17 @@ defmodule Proj4Test do
         Process.sleep(1000)
       end
     
-  
+      test "username is incorrect during login"  do
+        IO.puts "Test 8"
+        numUsers = 3
+        
+        set_up( numUsers )
+        Client.register( :"#{1}", "#{1}", "user#{1}" )
+        assert Client.register( :"#{1}", "#{1}", "user#{1}" ) == "fail"
+
+        assert Client.login( :"#{1}", "#{9}", "user#{1}" ) == "fail"
+        IO.puts "Sucess: The user doesn't exist\n"
+        Process.sleep(1000)
+      end
     
 end
