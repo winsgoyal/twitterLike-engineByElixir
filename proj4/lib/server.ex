@@ -289,19 +289,24 @@ defmodule TwitterServer do
 
     ## Update "subscribed_by_users list"
     def handle_call({:subscribe_user, user, subscribe_to_user}, _from, state) do
-      subscribe_details = :ets.lookup(:subscribe, subscribe_to_user)
-
-      if length(subscribe_details) == 0 do
-        :ets.insert_new(:subscribe, {subscribe_to_user, [user]})
-        #IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+      if user == subscribe_to_user do
+        IO.puts "User #{user} can't subscribe himself"
       else
-        [ {subscribe_to_user, subscribed_by_users} ] = subscribe_details
-        subscribed_by_users = subscribed_by_users ++ [user]
-        :ets.insert(:subscribe, {subscribe_to_user, subscribed_by_users})
-        #IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+        subscribe_details = :ets.lookup(:subscribe, subscribe_to_user)
+        if length(subscribe_details) == 0 do
+          :ets.insert_new(:subscribe, {subscribe_to_user, [user]})
+          #IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+        else
+          [ {subscribe_to_user, subscribed_by_users} ] = subscribe_details
+          if Enum.member?(subscribed_by_users, user) do
+            IO.puts "User #{user} was already subscribed to User #{subscribe_to_user}"
+          else
+            subscribed_by_users = subscribed_by_users ++ [user]
+            :ets.insert(:subscribe, {subscribe_to_user, subscribed_by_users})
+            #IO.inspect "User #{user} subscribed to User #{subscribe_to_user}"
+          end
+        end
       end
-      #IO.puts "Debug subscribe_user"
-      #IO.inspect :ets.lookup(:subscribe , subscribe_to_user)
       {:reply, "pass", state}
     end
 
