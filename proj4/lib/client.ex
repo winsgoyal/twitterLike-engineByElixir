@@ -142,6 +142,7 @@ defmodule Client  do
       {:reply, "pass", state}  
     else
       IO.puts "User " <> user <> " delettion unsucesesfull"
+      
       {:reply, "fail", state}  
     end
      
@@ -206,8 +207,14 @@ defmodule Client  do
   end
 
   def handle_call({:register, user, password}, _from, state) do
-    TwitterServer.register( user, password )
-    {:reply,state, state, :infinity}
+    result = TwitterServer.register( user, password )
+
+    if result == "pass" do
+      {:reply,"pass", state, :infinity}
+    else
+      {:reply, "fail", state ,  :infinity}
+    end
+    
   end
 
   def handle_call({:login, user, password}, _from, state) do
@@ -218,8 +225,11 @@ defmodule Client  do
       :ets.insert_new(:client_tweet, {user, []})
       :ets.insert_new(:notification, {user, []})
       IO.puts "User " <> user <> " Login Success"
+      {:reply, "pass", state, :infinity}
+
     else
       IO.puts "Login Failed, Please check Credentials"
+      {:reply, "fail", state, :infinity}
     end
 
     {:reply, state, state, :infinity}
