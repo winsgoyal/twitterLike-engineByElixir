@@ -16,8 +16,8 @@ defmodule Proj4.TwitterEngine do
      
     users = String.to_integer(users)
     numTweets = String.to_integer(numTweets)
-    maxSubscribers = String.to_integer(numTweets)
-    percentageOfDisconnection = String.to_integer(numTweets)
+    maxSubscribers = String.to_integer(maxSubscribers)
+    percentageOfDisconnection = String.to_integer(percentageOfDisconnection)
     {:ok, _pid} =   MySupervisor.start_link([users,numTweets])
     list = Enum.to_list(1..users )
     
@@ -46,6 +46,7 @@ defmodule Proj4.TwitterEngine do
       Client.login( pid, Integer.to_string(user), "user" <> Integer.to_string(user) )
     end )
 
+    Client.periodic_signin(user_list)
    
     IO.puts "********************************************************************"
 

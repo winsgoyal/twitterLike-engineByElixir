@@ -33,6 +33,18 @@ defmodule Client  do
     GenServer.call(pid, {:logout, user})
   end
 
+  def periodic_signin(user_list) do
+    Enum.each(user_list, fn user -> 
+                [{user_name, password, status, user_pid}] = :ets.lookup(:user, Integer.to_string(user))
+                if status == 1 do
+                  :ets.insert(:user, {user_name, password, 0, user_pid})
+                else
+                  :ets.insert(:user, {user_name, password, 1, user_pid})
+                end
+            end )
+    periodic_signin(user_list)
+  end
+
   #User will tweet, this function then connect to server
   def tweet(pid, user, tweet) do
     GenServer.call(pid, {:tweet, user , tweet })
