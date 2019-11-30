@@ -54,7 +54,7 @@ defmodule Proj4Test do
     # IF USER IS ABLE TO CREATE HIS ACCOUNT
     
     test "can't create duplicate user"  do
-        IO.puts "Test 7"
+        IO.puts "Test 5"
         numUsers = 3
         
         set_up( numUsers )
@@ -66,7 +66,7 @@ defmodule Proj4Test do
       end
     
       test "username is incorrect during login"  do
-        IO.puts "Test 8"
+        IO.puts "Test 6"
         numUsers = 3
         
         set_up( numUsers )
@@ -74,8 +74,158 @@ defmodule Proj4Test do
         assert Client.register( :"#{1}", "#{1}", "user#{1}" ) == "fail"
 
         assert Client.login( :"#{1}", "#{9}", "user#{1}" ) == "fail"
-        IO.puts "Sucess: The user doesn't exist\n"
+        IO.puts "Sucess: The username or password wrong\n"
         Process.sleep(1000)
       end
+
+      test "password is incorrect during login"  do
+        IO.puts "Test 7"
+        numUsers = 3
+        set_up( numUsers )
+        result = Client.register( :"#{1}", "#{1}", "user#{1}" )
+        assert result == "pass"
+
+        assert Client.login( :"#{1}", "#{1}", "user#{2}" ) == "fail"
+        IO.puts "Success: Incorrect password\n"
+        Process.sleep(1000)
+      end
+
+      test "one user logs-in"  do
+        IO.puts "Test 8"
+        numUsers = 3
+        
+        set_up( numUsers )
+        result = Client.register( :"#{1}", "#{1}", "user#{1}" )
+        assert result == "pass"
+
+        assert Client.login( :"#{1}", "#{1}", "user#{1}" ) == "pass"
+        IO.puts "Success: User is logged in now\n"
+      
+      end
+  
+      test "one user logs-out"  do
+        IO.puts "Test 9"
+        numUsers = 3
+        
+       
+        set_up( numUsers )
+        result = Client.register( :"#{1}", "#{1}", "user#{1}" )
+        assert result == "pass"
+
+        assert Client.login( :"#{1}", "#{1}", "user#{1}" ) == "pass"
+        IO.puts "Success: User is logged in now\n"
+       
+        Client.logout( :"#{1}", "#{1}" )
+        [{_, _, status, _}] = :ets.lookup(:user, "1")
+        assert status == 0
+        IO.puts "Success: Logged out\n"
+        
+      end
+
+      test "100 users login"  do
+        IO.puts "Test 12"
+        numUsers = 100
+        
+        
+       
+        set_up( numUsers )
+
+        Enum.each(1..numUsers , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
+    
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+        end) 
+       
+        IO.puts "Success: Three users logged-in\n"
+        
+      end
+
+      test "1000 users login"  do
+        IO.puts "Test 13"
+        numUsers = 1000
+        
+        set_up( numUsers )
+
+        Enum.each(1..numUsers , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
+    
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+        end) 
+       
+        
+       
+      end
+
+      test "1 tweet for every  users"  do
+        IO.puts "Test 14"
+        numUsers = 10
+        numTweets = 1
+        set_up( numUsers )
+
+        
+
+        Enum.each(1..numUsers , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
+    
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+
+            Enum.each(1..numTweets , fn tweet_number ->
+            assert Client.tweet( :"#{user}", Integer.to_string(user), "user" <> Integer.to_string(user) <> " tweet no. " <> Integer.to_string(tweet_number) ) == "pass"
+        end) 
+    end)
+       
+      end
+
+      test "1 tweet with hashtag for every  users"  do
+        IO.puts "Test 14"
+        numUsers = 10
+        numTweets = 1
+        set_up( numUsers )
+
+        
+
+        Enum.each(1..numUsers-1 , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
+    
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+
+            Enum.each(1..numTweets , fn tweet_number ->
+            assert Client.tweet( :"#{user}", Integer.to_string(user), " #focus user" <> Integer.to_string(user) <> " tweet no. " <> Integer.to_string(tweet_number) ) == "pass"
+        end) 
+    end)
+       
+      end
+
+      test "1 tweet with mention for every  users"  do
+        IO.puts "Test 14"
+        numUsers = 10
+        numTweets = 1
+        set_up( numUsers )
+
+        
+
+        Enum.each(1..numUsers , fn user -> 
+            result = Client.register( :"#{user}", "#{user}", "user#{user}" )
+            assert result == "pass"
+    
+            assert Client.login( :"#{user}", "#{user}", "user#{user}" ) == "pass"
+            IO.puts "Success: User is logged in now\n"
+
+            Enum.each(1..numTweets , fn tweet_number ->
+            assert Client.tweet( :"#{user}", Integer.to_string(user), "Mention @#{user+1} user " <> Integer.to_string(user) <> " tweet no. " <> Integer.to_string(tweet_number) ) == "pass"
+        end) 
+    end)
+       
+      end
+
+
     
 end
