@@ -1,35 +1,87 @@
-<section class="phx-hero">
-  <h1><%= gettext "Welcome to %{name}!", name: "Phoenix" %></h1>
-  <p>A productive web framework that<br/>does not compromise speed or maintainability.</p>
-</section>
+<!DOCTYPE html>
+<html>
+<head>
+<title>TwitterWeb</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+</head>
+<body style="background-color:white;align:center">
+<div class="container" style="color:white;">
+<div class="container" id="loginDiv" style="background-color:#5A8787;">
+  <center><h2>TWITTER ENGINE SIMULATOR</h2><br/>
+  <img class="img-responsive" src="https://image.flaticon.com/icons/png/512/60/60580.png" height="100" width="200">
+  <br><br>
+  </p> </span>
+  <br>
+  <form class="form-group">
+    <input type="text" class="form-control" style="width: 50%;" placeholder="Enter Username" id="username" required="true" />
+    <br>
+    <input type="password" class="form-control" style="width: 50%;" placeholder="Enter Password" id="password" required="true" />
+  </form>
+  <br/> <br/>
+  <button type="submit" class="btn btn-dark" id="login" style="color:black;">Login</button>
+  <button type="submit" class="btn btn-dark" id="signup" style="color:black;">Sign Up</button>
+  <br/> <br/>
+</form>
+</div>
 
-<section class="row">
-  <article class="column">
-    <h2>Resources</h2>
-    <ul>
-      <li>
-        <a href="https://hexdocs.pm/phoenix/overview.html">Guides &amp; Docs</a>
-      </li>
-      <li>
-        <a href="https://github.com/phoenixframework/phoenix">Source</a>
-      </li>
-      <li>
-        <a href="https://github.com/phoenixframework/phoenix/blob/v1.4/CHANGELOG.md">v1.4 Changelog</a>
-      </li>
-    </ul>
-  </article>
-  <article class="column">
-    <h2>Help</h2>
-    <ul>
-      <li>
-        <a href="https://elixirforum.com/c/phoenix-forum">Forum</a>
-      </li>
-      <li>
-        <a href="https://webchat.freenode.net/?channels=elixir-lang">#elixir-lang on Freenode IRC</a>
-      </li>
-      <li>
-        <a href="https://twitter.com/elixirphoenix">Twitter @elixirphoenix</a>
-      </li>
-    </ul>
-  </article>
-</section>
+<!-- DASHBOARD -->
+<div id="dashboardDiv" class="row container-fluid text-black" style="background-color:#5A8787;display:none;">
+  <div class="col-sm-4">
+    <h3> Welcome <span id="user_name"></span></h3>
+  </div>
+  
+  <div class="col-sm-4">
+    <center><h2>START TWITTING</h2></center>
+  </div>
+  
+  <div class="col-sm-4" align="right">
+    <br/>
+      <button type="submit" class="btn btn-dark" id="logout" style="color:black;">Logout</button></right>
+  </div>
+  <br/>
+  
+  <div class="col-sm-12">
+    <div id="wallDiv" class="col-sm-12">
+      <br/>
+      <textarea class="form-control" id="tweetBox" rows="4" cols="50" placeholder="Let's tweet now!!"></textarea><br/>
+      <div align="right"><button type="submit" class="btn btn-dark" id="tweetBtn" style="color:black;">Post Tweet</button></div>
+      <h4> MY WALL </h4> <br>
+      <div class="jumbotron" style="overflow: scroll;height: 200px;padding: 30px;">
+        <ul id = "ul" style="color: black; list-style-type: none; text-align: left;"></ul>
+      </div>
+    </div> <br/>
+    <div>
+      <button type="submit" class="btn btn-dark" id="chkRetweetBtn" style="color:black;">Check & Retweet</button>
+    </div>
+
+  <br/>
+  <div class="col-sm-4">
+    <h4> Subscribe Other Twitter!! </h4>
+    <input class="form-control" type="text" id="subscribeBox" placeholder="Enter the username" required /><br/>
+     <button type="submit" class="btn btn-dark" id="subscribeBtn" style="color:black;">Subscribe Twitter</button><br/><br/>
+  </div>
+  <div class="col-sm-4">
+    <h4> Search tweets by Hashtags </h4>
+    <input class="form-control" type="text" id="htgBox" placeholder="Enter the hashtag" required /><br/>
+     <button type="submit" class="btn btn-dark" id="htgBtn" style="color:black;">Find Specific Tweets</button><br/><br/>
+    <div class="jumbotron" style="overflow:auto">
+      <table class = "table-borderless" id="htgTable" style="color:black">
+      </table>
+    </div>
+  </div>
+  
+  <div class="col-sm-4">
+    <h4> Search My Mentions </h4>
+    <input class="form-control" type="text" id="myMentionBox" placeholder="Get My Mentions" readonly="true" required /><br/>
+      <button type="submit" class="btn btn-dark" id="myMentionBtn" style="color:black;"> Find myMention Tweets </button><br/><br/>
+    <div class="jumbotron" style="overflow:auto">
+      <table class = "table-borderless" id="myMentionTable" style="color:black">
+      </table>
+    </div>
+  </div>
+  
+</div>
+</div>
+</div>
+</body>
+</html>

@@ -2,7 +2,7 @@ defmodule TwitterEngineWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", TwitterEngineWeb.RoomChannel
+  channel "twitter", TwitterEngineWeb.EngineChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
