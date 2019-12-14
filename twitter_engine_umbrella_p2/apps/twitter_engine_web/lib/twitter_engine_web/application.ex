@@ -43,7 +43,7 @@ defmodule TwitterEngineWeb.Application do
     random_user = Enum.random(Enum.map(1..numUsers, fn n -> "user_#{n}" end))
     random_hastag = Enum.random(Enum.map(1..10, fn n -> "hashtag_#{n}" end))
 
-    "All IS Well! @#{random_user}, ##{random_hastag}."
+    "Hey @#{random_user} , ##{random_hastag} , All IS Well"
   end
 
   # Tell Phoenix to update the endpoint configuration
